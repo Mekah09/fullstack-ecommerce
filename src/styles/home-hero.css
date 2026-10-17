@@ -1,0 +1,582 @@
+.hero {
+  display: grid;
+  grid-template-columns: 47% 53%;
+  min-height: 475px;
+  background: #f1f0e9;
+  margin-top: 27px;
+  overflow: hidden;
+  position: relative;
+}
+.hero-copy {
+  padding: 64px 0 41px 51px;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  position: relative;
+  z-index: 2;
+}
+.hero-eyebrow {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  font-size: 8px;
+  font-weight: 600;
+  letter-spacing: 1.8px;
+  text-transform: uppercase;
+  color: #76826a;
+}
+.hero-eyebrow {
+  font-size: 8px;
+  letter-spacing: 1.65px;
+}
+.hero-eyebrow svg {
+  font-size: 13px;
+}
+.hero h1 {
+  font:
+    normal 57px/1.09 Georgia,
+    "Times New Roman",
+    serif;
+  letter-spacing: -2.25px;
+  color: #2e4433;
+  margin: 23px -12px 17px 0;
+}
+.hero h1 em {
+  font-weight: normal;
+  color: #80906f;
+}
+.hero-copy > p {
+  font-size: 11px;
+  line-height: 1.9;
+  color: #7a8073;
+  max-width: 303px;
+  margin: 0 0 25px;
+}
+.hero-social {
+  margin-top: 28px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+.mini-avatars {
+  display: flex;
+  padding-left: 0;
+}
+.mini-avatars img,
+.mini-avatars > span {
+  width: 26px;
+  height: 26px;
+  border-radius: 50%;
+  object-fit: cover;
+  border: 2px solid #f1f0e9;
+  background: #d1c6b6;
+  margin-left: -7px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font:
+    11px Georgia,
+    serif;
+  color: #4c5543;
+}
+.mini-avatars img:first-child,
+.mini-avatars > span:first-child {
+  margin-left: 0;
+}
+.mini-avatars > span:nth-child(2) {
+  background: #c3cbb9;
+}
+.mini-avatars > span:nth-child(3) {
+  background: #dec8b2;
+}
+.hero-social p {
+  font-size: 8px;
+  color: #7b8171;
+  line-height: 1.7;
+}
+.hero-social p strong {
+  color: #4c5c43;
+  font-weight: 500;
+}
+.hero-stars {
+  color: #859267;
+  font-size: 8px;
+  letter-spacing: 1px;
+  display: flex;
+  gap: 2px;
+  margin-bottom: 3px;
+}
+.hero-visual {
+  position: relative;
+  min-height: 475px;
+  overflow: hidden;
+  background: #f4f3ef;
+}
+.hero-photo {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  object-position: 48% 52%;
+  transform: scale(1.03);
+}
+.hero-image-tint {
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(90deg, #f1f0e938, transparent 28%);
+}
+.hero-seal {
+  position: absolute;
+  right: 24px;
+  top: 24px;
+  border: 1px solid #8c9a7a;
+  width: 75px;
+  height: 75px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-direction: column;
+  transform: rotate(12deg);
+  color: #6d815d;
+  background: #f7f6ed85;
+  backdrop-filter: blur(2px);
+  font-size: 7px;
+  text-transform: uppercase;
+  letter-spacing: 1.4px;
+  line-height: 1.7;
+  text-align: center;
+}
+.hero-seal svg {
+  font-size: 24px;
+  margin: 3px 0;
+}
+.hero-image-card {
+  position: absolute;
+  left: 25px;
+  bottom: 35px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 13px 17px;
+  background: #fffef9e8;
+  border: 1px solid #ffffffc7;
+  backdrop-filter: blur(8px);
+  border-radius: 5px;
+  box-shadow: 0 4px 20px #35422708;
+  transform: rotate(-3deg);
+}
+.image-card-icon {
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  display: grid;
+  place-items: center;
+  background: #edf1e4;
+  color: #728764;
+  font-size: 18px;
+}
+.hero-image-card strong {
+  display: block;
+  font-size: 10px;
+  font-weight: 500;
+  margin-bottom: 4px;
+}
+.hero-image-card p,
+.hero-image-card small {
+  font-size: 8px;
+  color: #939786;
+}
+.hero-photo-caption {
+  position: absolute;
+  right: 22px;
+  bottom: 21px;
+  font:
+    italic 11px Georgia,
+    serif;
+  color: #5d6d53;
+  letter-spacing: 0.1px;
+}
+@media (min-width: 1500px) {
+  .hero {
+    min-height: 510px;
+  }
+  .hero-copy {
+    padding-top: 76px;
+    padding-left: 62px;
+  }
+  .hero-visual {
+    min-height: 510px;
+  }
+  .hero h1 {
+    font-size: 65px;
+  }
+  .hero-copy > p {
+    font-size: 12px;
+    max-width: 335px;
+  }
+  .hero-social {
+    margin-top: 31px;
+  }
+}
+@media (max-width: 1100px) {
+  .hero-copy {
+    padding-left: 34px;
+    padding-top: 60px;
+  }
+  .hero h1 {
+    font-size: 49px;
+    letter-spacing: -1.9px;
+  }
+  .hero-copy > p {
+    max-width: 260px;
+    font-size: 10px;
+  }
+  .hero-visual {
+    min-height: 450px;
+  }
+  .hero {
+    min-height: 450px;
+  }
+  .hero-seal {
+    right: 18px;
+    top: 19px;
+    width: 65px;
+    height: 65px;
+    font-size: 6px;
+  }
+  .hero-image-card {
+    left: 16px;
+    bottom: 34px;
+    padding: 11px 13px;
+  }
+  .hero-photo-caption {
+    right: 15px;
+    font-size: 9px;
+  }
+}
+@media (max-width: 900px) {
+  .hero {
+    margin-top: 22px;
+    grid-template-columns: 48% 52%;
+    min-height: 420px;
+  }
+  .hero-copy {
+    padding: 44px 0 30px 28px;
+  }
+  .hero h1 {
+    font-size: 44px;
+    line-height: 1.12;
+    margin-top: 21px;
+    letter-spacing: -1.6px;
+  }
+  .hero-visual {
+    min-height: 420px;
+  }
+  .hero-copy > p {
+    font-size: 10px;
+    max-width: 230px;
+  }
+  .hero-copy > .primary-button {
+    padding: 11px 17px;
+    gap: 18px;
+    font-size: 9px;
+    min-height: 40px;
+  }
+  .hero-social {
+    gap: 7px;
+    margin-top: 24px;
+  }
+  .hero-social p {
+    font-size: 7px;
+  }
+  .mini-avatars img,
+  .mini-avatars > span {
+    width: 23px;
+    height: 23px;
+    font-size: 9px;
+  }
+  .hero-eyebrow {
+    font-size: 6px;
+    letter-spacing: 1.2px;
+  }
+  .hero-seal {
+    width: 58px;
+    height: 58px;
+    right: 13px;
+    font-size: 5px;
+  }
+  .hero-seal svg {
+    font-size: 20px;
+  }
+  .hero-image-card {
+    left: 12px;
+    bottom: 32px;
+    padding: 10px 11px;
+    gap: 8px;
+  }
+  .hero-image-card strong {
+    font-size: 8px;
+  }
+  .hero-image-card p,
+  .hero-image-card small {
+    font-size: 6px;
+  }
+  .image-card-icon {
+    width: 26px;
+    height: 26px;
+    font-size: 14px;
+  }
+  .hero-photo-caption {
+    font-size: 8px;
+    bottom: 15px;
+  }
+}
+@media (max-width: 650px) {
+  .hero {
+    margin-top: 3px;
+    display: flex;
+    flex-direction: column;
+    min-height: 0;
+  }
+  .hero-copy {
+    padding: 35px 29px 32px;
+    align-items: flex-start;
+  }
+  .hero-eyebrow {
+    font-size: 7px;
+    letter-spacing: 1.6px;
+  }
+  .hero-eyebrow svg {
+    font-size: 12px;
+  }
+  .hero h1 {
+    font-size: 47px;
+    line-height: 1.07;
+    letter-spacing: -1.8px;
+    margin: 20px 0 17px;
+  }
+  .hero-copy > p {
+    font-size: 11px;
+    max-width: 285px;
+    line-height: 1.8;
+    margin-bottom: 21px;
+  }
+  .hero-copy > .primary-button {
+    min-height: 42px;
+    font-size: 10px;
+    padding: 12px 18px;
+    gap: 23px;
+  }
+  .hero-social {
+    margin-top: 23px;
+    gap: 10px;
+  }
+  .hero-social p {
+    font-size: 8px;
+  }
+  .hero-stars {
+    font-size: 8px;
+  }
+  .mini-avatars img,
+  .mini-avatars > span {
+    width: 25px;
+    height: 25px;
+    font-size: 10px;
+  }
+  .hero-visual {
+    min-height: 300px;
+    max-height: 340px;
+    aspect-ratio: 1.1;
+  }
+  .hero-photo {
+    object-position: 50% 55%;
+    transform: scale(1.04);
+  }
+  .hero-seal {
+    width: 65px;
+    height: 65px;
+    top: 20px;
+    right: 21px;
+    font-size: 6px;
+  }
+  .hero-seal svg {
+    font-size: 21px;
+  }
+  .hero-image-card {
+    bottom: 33px;
+    left: 21px;
+    padding: 11px 13px;
+    gap: 9px;
+  }
+  .hero-image-card strong {
+    font-size: 9px;
+  }
+  .hero-image-card p,
+  .hero-image-card small {
+    font-size: 7px;
+  }
+  .image-card-icon {
+    width: 29px;
+    height: 29px;
+    font-size: 16px;
+  }
+  .hero-photo-caption {
+    font-size: 9px;
+    bottom: 14px;
+    right: 18px;
+  }
+  .desktop-break {
+    display: none;
+  }
+}
+@media (max-width: 370px) {
+  .hero-copy {
+    padding: 30px 24px;
+  }
+  .hero h1 {
+    font-size: 42px;
+  }
+  .hero-visual {
+    min-height: 260px;
+  }
+  .hero-social p {
+    font-size: 7px;
+  }
+  .hero-eyebrow {
+    font-size: 6px;
+    letter-spacing: 1.4px;
+  }
+}
+.hero-eyebrow > span {
+  display: block;
+  width: 5px;
+  height: 5px;
+  border-radius: 50%;
+  background: #8b9e75;
+}
+.hero-copy > p {
+  font-size: 12px;
+}
+.hero-copy > .primary-button {
+  font-size: 11px;
+}
+.hero-social > div:last-child > span {
+  font-size: 9px;
+  color: #88917b;
+  display: block;
+  margin-top: 4px;
+}
+.hero-stars {
+  font-size: 9px;
+  align-items: center;
+  gap: 4px;
+  letter-spacing: 1.3px;
+}
+.hero-stars b {
+  font-size: 8px;
+  font-weight: 400;
+  color: #6d7b60;
+  letter-spacing: 0;
+  margin-left: 3px;
+}
+.hero-image-card {
+  border: 1px solid #fffdf9cc;
+  color: #4b6340;
+  text-align: left;
+}
+.hero-image-card small {
+  display: block;
+  font-size: 6px;
+  letter-spacing: 1px;
+  margin-bottom: 5px;
+  color: #8b967e;
+}
+.hero-image-card b {
+  display: block;
+  font-size: 10px;
+  font-weight: 500;
+  white-space: nowrap;
+}
+.hero-image-card > svg {
+  font-size: 15px;
+  margin-left: 8px;
+}
+@media (min-width: 1200px) {
+  .hero-copy {
+    padding-top: 65px;
+  }
+  .hero-social {
+    margin-top: 27px;
+  }
+  .hero-copy > p {
+    max-width: 335px;
+  }
+  .hero h1 {
+    font-size: 59px;
+  }
+}
+@media (max-width: 1100px) {
+  .hero-copy > p {
+    font-size: 11px;
+  }
+}
+@media (max-width: 900px) {
+  .hero-copy > p {
+    font-size: 10px;
+  }
+  .hero-copy > .primary-button {
+    font-size: 10px;
+  }
+  .hero h1 {
+    font-size: 43px;
+  }
+  .hero-social > div:last-child > span {
+    font-size: 7px;
+  }
+  .hero-stars {
+    font-size: 8px;
+  }
+  .hero-stars b {
+    font-size: 7px;
+  }
+}
+@media (max-width: 650px) {
+  .hero h1 {
+    font-size: 47px;
+  }
+  .hero-copy > p {
+    font-size: 11px;
+  }
+  .hero-social > div:last-child > span {
+    font-size: 8px;
+  }
+  .hero-stars {
+    font-size: 9px;
+  }
+  .hero-stars b {
+    font-size: 8px;
+  }
+  .hero-image-card b {
+    font-size: 9px;
+  }
+  .hero-image-card small {
+    font-size: 6px;
+  }
+  .hero-image-card > svg {
+    font-size: 13px;
+    margin-left: 4px;
+  }
+}
+@media (max-width: 370px) {
+  .hero h1 {
+    font-size: 42px;
+  }
+  .hero-social > div:last-child > span {
+    font-size: 7px;
+  }
+  .hero-stars b {
+    font-size: 7px;
+  }
+}

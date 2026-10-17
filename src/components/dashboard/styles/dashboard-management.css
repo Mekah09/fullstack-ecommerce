@@ -1,0 +1,109 @@
+.dash-avatar {
+  display: grid;
+  place-items: center;
+  width: 36px;
+  height: 36px;
+  font-size: 10px;
+  font-weight: 600;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+.dash-avatar-sage {
+  color: #7a8d60;
+  background: #e9eee0;
+}
+.dash-avatar-sand {
+  color: #ae9474;
+  background: #f2eadd;
+}
+.dash-avatar-lavender {
+  color: #9586aa;
+  background: #efebf4;
+}
+.dash-avatar-rose {
+  color: #b18682;
+  background: #f5e8e4;
+}
+.dash-approve {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  background: #eff3e7;
+  border: 1px solid #dfe7d2;
+  border-radius: 4px;
+  color: #6f8955;
+  padding: 6px 10px;
+  font-size: 9px !important;
+}
+.dash-approved {
+  display: flex;
+  gap: 5px;
+  align-items: center;
+  color: #a2ad93;
+  font-size: 9px;
+}
+.dash-order-tabs {
+  display: flex;
+  gap: 5px;
+  padding: 0 22px 18px;
+  overflow: auto;
+}
+.dash-order-tabs button {
+  font-size: 9px;
+  border: 0;
+  background: none;
+  color: #939d86;
+  border-radius: 4px;
+  white-space: nowrap;
+  padding: 8px 12px;
+}
+.dash-order-tabs button.active {
+  background: #edf1e5;
+  color: #61764d;
+}
+.dash-settings {
+  max-width: 650px;
+}
+.dash-settings form {
+  padding: 6px 25px 27px;
+}
+.dash-settings label,
+.dash-form label {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  font-size: 11px;
+  color: #6f7c60;
+  margin-bottom: 18px;
+}
+.dash-settings input,
+.dash-form input,
+.dash-form textarea,
+.dash-form select {
+  padding: 11px 12px;
+  border: 1px solid #dfe5d6;
+  border-radius: 5px;
+  font-size: 12px;
+  outline: none;
+  color: #445738;
+  background: #fff;
+  width: 100%;
+  box-sizing: border-box;
+}
+.dash-settings input:focus,
+.dash-form input:focus,
+.dash-form textarea:focus,
+.dash-form select:focus {
+  border-color: #96a984;
+  box-shadow: 0 0 0 3px #edf2e6;
+}
+.dash-settings input[readonly] {
+  background: #f5f6f0;
+  color: #9aa48c;
+}
+.dash-settings-note {
+  font-size: 10px;
+  color: #98a38a;
+  line-height: 1.8;
+  margin: 0 0 22px;
+}

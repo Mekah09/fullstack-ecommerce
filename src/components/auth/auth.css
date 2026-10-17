@@ -1,0 +1,220 @@
+.auth-dialog {
+  position: relative;
+  width: min(100%, 470px);
+  background: #fffefa;
+  border-radius: 12px;
+  padding: 31px 39px 22px;
+  box-shadow: 0 22px 90px #18231d26;
+  max-height: calc(100dvh - 56px);
+  overflow: auto;
+  color: #26382b;
+  animation: overlay-rise-in 0.25s ease;
+}
+.auth-dialog > .overlay-close {
+  position: absolute;
+  right: 17px;
+  top: 17px;
+}
+.auth-brand {
+  font-size: 34px;
+  font-family: Georgia, "Times New Roman", serif;
+  font-weight: bold;
+  letter-spacing: -2px;
+  line-height: 1;
+  margin-bottom: 23px;
+  color: #234d39;
+}
+.auth-brand span {
+  vertical-align: top;
+  font:
+    10px Arial,
+    sans-serif;
+  letter-spacing: 0;
+  margin: 4px 0 0 3px;
+  display: inline-block;
+}
+.auth-dialog h2 {
+  font:
+    normal 31px/1.15 Georgia,
+    "Times New Roman",
+    serif;
+  letter-spacing: -0.9px;
+  margin: 9px 0 9px;
+  color: #253b2c;
+}
+.auth-intro {
+  font-size: 12px;
+  line-height: 1.7;
+  color: #7c8276;
+  margin: 0 0 21px;
+}
+.auth-role-switch {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 9px;
+  margin: 0 0 17px;
+}
+.auth-role {
+  position: relative;
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  border: 1px solid #e2e4dc;
+  border-radius: 6px;
+  padding: 13px 9px;
+  text-align: left;
+  background: white;
+  color: #56614f;
+  font: inherit;
+  cursor: pointer;
+  transition:
+    border-color 0.18s,
+    background 0.18s;
+}
+.auth-role.active {
+  border-color: #547858;
+  background: #f0f4ed;
+  color: #234d39;
+}
+.auth-role > svg:first-child {
+  width: 16px;
+  height: 16px;
+  flex-shrink: 0;
+  margin-top: 1px;
+}
+.auth-role > span {
+  font-size: 11px;
+  font-weight: 600;
+  line-height: 1.45;
+}
+.auth-role small {
+  display: block;
+  font-size: 8px;
+  font-weight: 400;
+  color: #838a7d;
+  margin-top: 3px;
+}
+.auth-role .auth-role-check {
+  position: absolute;
+  right: 5px;
+  top: 5px;
+  width: 11px;
+  height: 11px;
+}
+.auth-demo-note {
+  font-size: 10px;
+  line-height: 1.65;
+  padding: 10px 12px;
+  border: 1px solid #e5e8dd;
+  background: #f6f7f0;
+  border-radius: 5px;
+  color: #767f6b;
+  margin: 0 0 16px;
+}
+.auth-demo-note span {
+  font-size: 8px;
+  letter-spacing: 1px;
+  color: #526948;
+  font-weight: 700;
+  display: block;
+  margin-bottom: 2px;
+}
+.auth-form {
+  display: flex;
+  flex-direction: column;
+  gap: 13px;
+}
+.auth-form > label {
+  font-size: 10px;
+  font-weight: 600;
+  color: #52604c;
+  display: block;
+}
+.auth-input-wrap {
+  display: flex;
+  align-items: center;
+  position: relative;
+  margin-top: 6px;
+}
+.auth-input-wrap > svg {
+  position: absolute;
+  left: 13px;
+  pointer-events: none;
+  color: #969d90;
+  width: 15px;
+  height: 15px;
+}
+.auth-input-wrap input {
+  width: 100%;
+  height: 43px;
+  border: 1px solid #e0e3d9;
+  border-radius: 5px;
+  background: white;
+  padding: 0 12px 0 37px;
+  font: inherit;
+  font-size: 12px;
+  color: #293b2d;
+  outline: none;
+  transition:
+    border-color 0.18s,
+    box-shadow 0.18s;
+}
+.auth-input-wrap input::placeholder {
+  color: #a5aa9e;
+  font-weight: 400;
+}
+.auth-input-wrap input:focus {
+  border-color: #6d8b61;
+  box-shadow: 0 0 0 3px #edf1e8;
+}
+.auth-submit {
+  width: 100%;
+  margin-top: 3px;
+  justify-content: space-between;
+  min-height: 44px;
+  font-size: 12px;
+}
+.auth-switch {
+  text-align: center;
+  font-size: 10px;
+  line-height: 1.6;
+  color: #8a8f80;
+  margin: 18px 0 0;
+}
+.auth-switch button {
+  border: 0;
+  background: none;
+  color: #234d39;
+  font: inherit;
+  font-weight: 600;
+  cursor: pointer;
+  padding: 0 0 0 3px;
+}
+.auth-switch button:hover {
+  text-decoration: underline;
+}
+.auth-admin {
+  border-top: 1px solid #e9eade;
+  margin-top: 18px;
+  padding-top: 14px;
+  text-align: center;
+}
+.auth-admin button {
+  border: 0;
+  background: none;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  color: #7a8370;
+  font: inherit;
+  font-size: 10px;
+  cursor: pointer;
+  padding: 0;
+}
+.auth-admin button:hover {
+  color: #234d39;
+}
+.auth-admin button svg {
+  width: 13px;
+  height: 13px;
+}
