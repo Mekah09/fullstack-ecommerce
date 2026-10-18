@@ -5,6 +5,7 @@ import {
   FiUsers,
 } from "react-icons/fi";
 import { countsTowardRevenue, currency } from "./dashboardData.jsx";
+import { hasStockLimit } from "../utils/cart.jsx";
 
 export default function DashboardStats({
   admin,
@@ -22,6 +23,7 @@ export default function DashboardStats({
     (sum, product) => sum + (Number(product.stock) || 0),
     0,
   );
+  const stockProvided = products.every((product) => hasStockLimit(product.stock));
   const approved = sellers.filter(
     (seller) => String(seller.status).toLowerCase() === "approved",
   ).length;
@@ -56,9 +58,11 @@ export default function DashboardStats({
         }
       : {
           label: "Units in stock",
-          value: productsLoading ? "—" : stock,
+          value: productsLoading || !stockProvided ? "—" : stock,
           icon: FiPackage,
-          note: "Across your product inventory",
+          note: stockProvided
+            ? "Across your product inventory"
+            : "Stock not provided by your API",
         },
   ];
   return (

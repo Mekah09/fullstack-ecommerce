@@ -79,7 +79,7 @@ export default class ProductDetails extends Component {
     } = this.props;
     const { quantity, added, error, selectedColor } = this.state;
     const { titleId } = this;
-    const stock = typeof product.stock === "number" ? product.stock : 99;
+    const stock = product.stock;
     const name = product.name || product.title;
     const hasRating =
       product.rating !== undefined &&

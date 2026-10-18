@@ -2,11 +2,16 @@ export const API_BASE_URL = (import.meta.env?.VITE_API_BASE_URL || "")
   .trim()
   .replace(/\/+$/, "");
 export const API_CONFIGURED = Boolean(API_BASE_URL);
+const DEFAULT_PRODUCTS_API_URL =
+  "https://fullstack-ecommerce2.onrender.com/products";
 export const PRODUCTS_API_URL =
   (import.meta.env?.VITE_PRODUCTS_API_URL || "").trim() ||
-  (API_BASE_URL
-    ? `${API_BASE_URL}/products`
-    : "https://fullstack-ecommerce2.onrender.com/products");
+  DEFAULT_PRODUCTS_API_URL;
+// Vite and Vercel forward this same-origin route to the public catalog.
+const PRODUCTS_REQUEST_URL =
+  import.meta.env?.DEV || PRODUCTS_API_URL === DEFAULT_PRODUCTS_API_URL
+    ? "/catalog-api/products"
+    : PRODUCTS_API_URL;
 
 const sessionKeys = { user: "nook.user.v1", token: "nook.token.v1" };
 const sessionMemory = new Map();
@@ -134,16 +139,16 @@ function normalizeProduct(product, sourceUrl = PRODUCTS_API_URL) {
   if (!product || typeof product !== "object" || Array.isArray(product)) {
     throw new Error("The API returned an invalid product.");
   }
-  const name = product.name ?? product.title;
+  const name = product.productName ?? product.name ?? product.title;
   if (typeof name !== "string" || !name.trim()) {
     throw new Error("The API returned a product without a name.");
   }
-  const stock = nonnegativeNumber(product.stock, "stock", true) ?? 0;
-  if (!Number.isInteger(stock))
+  const stock = nonnegativeNumber(product.stock, "stock", true) ?? null;
+  if (stock !== null && !Number.isSafeInteger(stock))
     throw new Error("The API returned invalid product stock.");
   const category =
-    typeof product.category === "string"
-      ? product.category
+    typeof (product.productCategory ?? product.category) === "string"
+      ? (product.productCategory ?? product.category)
       : product.category?.name;
   const seller =
     typeof product.seller === "string" ? product.seller : product.seller?.name;
@@ -155,11 +160,11 @@ function normalizeProduct(product, sourceUrl = PRODUCTS_API_URL) {
     name: name.trim(),
     category: typeof category === "string" ? category : "",
     seller: typeof seller === "string" ? seller : "",
-    image: productImage(product.image, sourceUrl),
+    image: productImage(product.productImage ?? product.image, sourceUrl),
     description:
       typeof product.description === "string" ? product.description : "",
     badge: typeof product.badge === "string" ? product.badge : "",
-    price: nonnegativeNumber(product.price, "price"),
+    price: nonnegativeNumber(product.productPrice ?? product.price, "price"),
     stock,
     colors: Array.isArray(product.colors)
       ? product.colors.filter((color) => typeof color === "string")
@@ -256,10 +261,11 @@ function orderPayload(input) {
 }
 
 export async function getProducts() {
-  const products = await requestUrl(PRODUCTS_API_URL);
+  const payload = await requestUrl(PRODUCTS_REQUEST_URL);
+  const products = Array.isArray(payload) ? payload : payload?.products;
   if (!Array.isArray(products)) {
     throw new Error(
-      "The products API must return an array of product objects.",
+      "The products API must return an array or an object containing a products array.",
     );
   }
   const normalized = products.map((product) => normalizeProduct(product));

@@ -1,0 +1,12 @@
+{
+  "rewrites": [
+    {
+      "source": "/catalog-api/products",
+      "destination": "https://fullstack-ecommerce2.onrender.com/products"
+    },
+    {
+      "source": "/(.*)",
+      "destination": "/index.html"
+    }
+  ]
+}

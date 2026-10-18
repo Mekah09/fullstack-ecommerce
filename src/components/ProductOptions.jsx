@@ -6,6 +6,7 @@ import {
   FiShoppingBag,
 } from "react-icons/fi";
 import { colorLabel } from "./productVariants.jsx";
+import { hasStockLimit } from "../utils/cart.jsx";
 
 export default function ProductOptions({
   colors,
@@ -19,6 +20,8 @@ export default function ProductOptions({
   isWishlisted,
   onToggleWishlist,
 }) {
+  const knownStock = hasStockLimit(stock);
+  const soldOut = stock === 0;
   return (
     <>
       {colors.length > 0 && (
@@ -65,13 +68,18 @@ export default function ProductOptions({
           </div>
         </div>
       )}
-      <p className={`detail-stock ${stock === 0 ? "unavailable" : ""}`}>
-        <span />
-        {stock === 0
-          ? "Currently out of stock"
-          : stock <= 5
-            ? `Just ${stock} left in stock`
-            : "In stock and ready for you"}
+      <p
+        className={`detail-stock ${soldOut ? "unavailable" : ""}`}
+        style={knownStock ? undefined : { color: "inherit" }}
+      >
+        {knownStock && <span />}
+        {!knownStock
+          ? "Availability confirmed at checkout"
+          : soldOut
+            ? "Currently out of stock"
+            : stock <= 5
+              ? `Just ${stock} left in stock`
+              : "In stock and ready for you"}
       </p>
       <div className="detail-add-row">
         <div className="overlay-quantity detail-quantity">
@@ -80,7 +88,7 @@ export default function ProductOptions({
             onClick={() => {
               onChangeQuantity((value) => Math.max(1, value - 1));
             }}
-            disabled={quantity <= 1 || !stock}
+            disabled={quantity <= 1 || soldOut}
             aria-label="Decrease quantity"
           >
             <FiMinus />
@@ -89,9 +97,14 @@ export default function ProductOptions({
           <button
             type="button"
             onClick={() => {
-              onChangeQuantity((value) => Math.min(stock, value + 1));
+              onChangeQuantity((value) =>
+                Math.min(knownStock ? stock : Number.MAX_SAFE_INTEGER, value + 1),
+              );
             }}
-            disabled={quantity >= stock || !stock}
+            disabled={
+              soldOut ||
+              quantity >= (knownStock ? stock : Number.MAX_SAFE_INTEGER)
+            }
             aria-label="Increase quantity"
           >
             <FiPlus />
@@ -100,11 +113,11 @@ export default function ProductOptions({
         <button
           type="button"
           className="overlay-primary detail-add"
-          disabled={!stock}
+          disabled={soldOut}
           onClick={onAddToBag}
         >
           {added ? <FiCheck /> : <FiShoppingBag />}
-          {!stock ? "Sold out" : added ? "Add another to bag" : "Add to bag"}
+          {soldOut ? "Sold out" : added ? "Add another to bag" : "Add to bag"}
         </button>
         <button
           type="button"

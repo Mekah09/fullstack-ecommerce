@@ -38,7 +38,7 @@ function ProductCard({ product, index = 0, shop }) {
         <button
           className="quick-add"
           onClick={() => addToCart(product, 1)}
-          disabled={!product.stock}
+          disabled={product.stock === 0}
           aria-label={`Add ${product.name} to cart`}
         >
           <FiPlus />

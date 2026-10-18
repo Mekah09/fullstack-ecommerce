@@ -1,6 +1,7 @@
 import { FiEdit2, FiTrash2 } from "react-icons/fi";
 import { currency } from "./dashboardData.jsx";
 import ProductImage from "./ProductImage.jsx";
+import { hasStockLimit } from "../utils/cart.jsx";
 
 export default function ProductTable({ products, onEdit, onDelete }) {
   return (
@@ -34,11 +35,13 @@ export default function ProductTable({ products, onEdit, onDelete }) {
             </td>
             <td>
               <span
-                className={`dash-status ${product.stock > 0 ? "dash-status-delivered" : "dash-status-out"}`}
+                className={`dash-status ${!hasStockLimit(product.stock) ? "" : product.stock > 0 ? "dash-status-delivered" : "dash-status-out"}`}
               >
-                {product.stock > 0
-                  ? `${product.stock} in stock`
-                  : "Out of stock"}
+                {!hasStockLimit(product.stock)
+                  ? "Stock not provided"
+                  : product.stock > 0
+                    ? `${product.stock} in stock`
+                    : "Out of stock"}
               </span>
             </td>
             <td>

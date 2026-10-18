@@ -10,6 +10,7 @@ import DialogPanel from "./DialogPanel.jsx";
 import { money } from "../utils/format.jsx";
 import OverlayClose from "./OverlayClose.jsx";
 import ProductImage from "./ProductImage.jsx";
+import { hasStockLimit } from "../utils/cart.jsx";
 import "./commerce-overlays.css";
 
 let nextCartId = 0;
@@ -88,6 +89,9 @@ export class CartDrawer extends Component {
               <div className="cart-items">
                 {items.map((item) => {
                   const cartId = item.cartId || item.id;
+                  const productQuantity = items
+                    .filter((other) => other.id === item.id)
+                    .reduce((sum, other) => sum + other.quantity, 0);
                   return (
                     <article className="cart-item" key={cartId}>
                       <ProductImage
@@ -125,10 +129,10 @@ export class CartDrawer extends Component {
                                 onUpdateQuantity(cartId, item.quantity + 1)
                               }
                               disabled={
-                                item.quantity >=
-                                (typeof item.stock === "number"
+                                productQuantity >=
+                                (hasStockLimit(item.stock)
                                   ? item.stock
-                                  : 99)
+                                  : Number.MAX_SAFE_INTEGER)
                               }
                             >
                               <FiPlus />

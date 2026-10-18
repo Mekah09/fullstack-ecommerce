@@ -6,6 +6,7 @@ import {
   cartKey,
   cartRecords,
   changeCartQuantity,
+  hasStockLimit,
   increaseCart,
 } from "../utils/cart.jsx";
 import * as api from "../services/api.jsx";
@@ -97,18 +98,29 @@ export default class ShopProvider extends Component {
   };
 
   addToCart = (product, requested = 1) => {
+    const requestedQuantity = Math.floor(Number(requested));
+    if (!Number.isSafeInteger(requestedQuantity) || requestedQuantity < 1) {
+      this.notify("Choose a valid quantity.");
+      return false;
+    }
     const live = this.state.products.find((item) => item.id === product.id);
     const used = this.state.cart
       .filter((item) => item.id === product.id)
       .reduce((sum, item) => sum + item.quantity, 0);
-    if (!live || live.stock <= used) {
+    if (!live || (hasStockLimit(live.stock) && live.stock <= used)) {
       this.notify("This quantity is currently unavailable.");
       return false;
     }
     const quantity = Math.min(
-      Math.max(1, Math.floor(Number(requested) || 1)),
-      live.stock - used,
+      requestedQuantity,
+      hasStockLimit(live.stock)
+        ? live.stock - used
+        : Number.MAX_SAFE_INTEGER - used,
     );
+    if (quantity < 1) {
+      this.notify("Choose a smaller quantity.");
+      return false;
+    }
     const item = {
       ...live,
       selectedColor: product.selectedColor,
