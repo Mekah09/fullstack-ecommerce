@@ -1,6 +1,6 @@
-@import "./ui/overlay.css";
-@import "./auth/auth.css";
-@import "./ui/overlay-drawer.css";
-@import "./cart/cart.css";
-@import "./products/product-details.css";
-@import "./ui/overlay-responsive.css";
+@import "./overlay.css";
+@import "./auth.css";
+@import "./overlay-drawer.css";
+@import "./cart.css";
+@import "./product-details.css";
+@import "./overlay-responsive.css";

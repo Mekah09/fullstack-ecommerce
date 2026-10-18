@@ -1,8 +1,8 @@
-import FeaturedProducts from "../components/home/FeaturedProducts";
-import Hero from "../components/home/Hero";
-import MakersBanner from "../components/home/MakersBanner";
-import Newsletter from "../components/home/Newsletter";
-import ShoppingBenefits from "../components/home/ShoppingBenefits";
+import FeaturedProducts from "../components/FeaturedProducts.jsx";
+import Hero from "../components/Hero.jsx";
+import MakersBanner from "../components/MakersBanner.jsx";
+import Newsletter from "../components/Newsletter.jsx";
+import ShoppingBenefits from "../components/ShoppingBenefits.jsx";
 
 export default function HomePage() {
   return (

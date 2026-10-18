@@ -1,17 +1,17 @@
-import DashboardHeader from "./dashboard/DashboardHeader";
-import DashboardNotice from "./dashboard/DashboardNotice";
-import DashboardSidebar from "./dashboard/DashboardSidebar";
-import DashboardStats from "./dashboard/DashboardStats";
-import DeleteProductDialog from "./dashboard/DeleteProductDialog";
-import InventoryPanel from "./dashboard/InventoryPanel";
-import OrdersTable from "./dashboard/OrdersTable";
-import OverviewInsights from "./dashboard/OverviewInsights";
-import ProductForm from "./dashboard/ProductForm";
-import ProductInspiration from "./dashboard/ProductInspiration";
-import SellersPanel from "./dashboard/SellersPanel";
-import ShopSettings from "./dashboard/ShopSettings";
-import { getNavigation } from "./dashboard/dashboardNavigation";
-import useDashboard from "./dashboard/useDashboard";
+import DashboardHeader from "./DashboardHeader.jsx";
+import DashboardNotice from "./DashboardNotice.jsx";
+import DashboardSidebar from "./DashboardSidebar.jsx";
+import DashboardStats from "./DashboardStats.jsx";
+import DeleteProductDialog from "./DeleteProductDialog.jsx";
+import InventoryPanel from "./InventoryPanel.jsx";
+import OrdersTable from "./OrdersTable.jsx";
+import OverviewInsights from "./OverviewInsights.jsx";
+import ProductForm from "./ProductForm.jsx";
+import ProductInspiration from "./ProductInspiration.jsx";
+import SellersPanel from "./SellersPanel.jsx";
+import ShopSettings from "./ShopSettings.jsx";
+import { getNavigation } from "./dashboardNavigation.jsx";
+import useDashboard from "./useDashboard.jsx";
 import "./dashboard.css";
 
 export default function Dashboard({

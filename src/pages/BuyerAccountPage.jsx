@@ -1,8 +1,8 @@
 import { FiArrowRight } from "react-icons/fi";
 import { Link } from "react-router-dom";
-import { useShop } from "../hooks/useShop";
-import OrderHistory from "../components/account/OrderHistory";
-import SavedFinds from "../components/account/SavedFinds";
+import { useShop } from "../hooks/useShop.jsx";
+import OrderHistory from "../components/OrderHistory.jsx";
+import SavedFinds from "../components/SavedFinds.jsx";
 
 export default function BuyerAccountPage() {
   const { user } = useShop();

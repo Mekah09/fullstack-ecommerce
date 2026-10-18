@@ -1,3 +1,3 @@
-export { AuthModal } from "./auth/AuthModal";
-export { CartDrawer } from "./cart/CartDrawer";
-export { ProductModal } from "./products/ProductModal";
+export { AuthModal } from "./AuthModal.jsx";
+export { CartDrawer } from "./CartDrawer.jsx";
+export { ProductModal } from "./ProductModal.jsx";

@@ -2,7 +2,7 @@
 
 The frontend runs with local demo data when `VITE_API_BASE_URL` is unset. Demo products, cart, orders, and the selected preview identity persist in this browser. No demo passwords are stored or verified. Demo buyer, seller, and admin identities exist only to preview the interface; registration offers buyer and seller roles. Demo identity IDs use role and email so returning to the same identity can restore its orders. This is a preview convenience, not authentication.
 
-Set `VITE_API_BASE_URL=https://your-api.example.com/api` in an ignored `.env.local`, then restart Vite. The value is public browser configuration, so never put secrets in it. `src/services/api.js` contains the request adapter. The API must allow the frontend origin through CORS. Use HTTPS in production.
+Set `VITE_API_BASE_URL=https://your-api.example.com/api` in an ignored `.env.local`, then restart Vite. The value is public browser configuration, so never put secrets in it. `src/services/api.jsx` contains the request adapter. The API must allow the frontend origin through CORS. Use HTTPS in production.
 
 ## Endpoints
 

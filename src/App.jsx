@@ -1,13 +1,13 @@
 import { BrowserRouter, Route, Routes } from "react-router-dom";
-import ShopProvider from "./context/ShopProvider";
-import AppLayout from "./components/layout/AppLayout";
-import RequireRole from "./components/layout/RequireRole";
-import HomePage from "./pages/HomePage";
-import ProductsPage from "./pages/ProductsPage";
-import BuyerAccountPage from "./pages/BuyerAccountPage";
-import SellerDashboardPage from "./pages/SellerDashboardPage";
-import AdminDashboardPage from "./pages/AdminDashboardPage";
-import NotFoundPage from "./pages/NotFoundPage";
+import ShopProvider from "./components/ShopProvider.jsx";
+import AppLayout from "./components/AppLayout.jsx";
+import RequireRole from "./components/RequireRole.jsx";
+import HomePage from "./pages/HomePage.jsx";
+import ProductsPage from "./pages/ProductsPage.jsx";
+import BuyerAccountPage from "./pages/BuyerAccountPage.jsx";
+import SellerDashboardPage from "./pages/SellerDashboardPage.jsx";
+import AdminDashboardPage from "./pages/AdminDashboardPage.jsx";
+import NotFoundPage from "./pages/NotFoundPage.jsx";
 import "./App.css";
 
 export default function App() {

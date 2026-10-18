@@ -1,10 +1,10 @@
 import { FiArrowRight, FiChevronRight, FiHeart } from "react-icons/fi";
 import { LuSprout } from "react-icons/lu";
 import { Link } from "react-router-dom";
-import ProductFilters from "../components/products/ProductFilters";
-import ProductResults from "../components/products/ProductResults";
-import { useProductFilters } from "../hooks/useProductFilters";
-import { useShop } from "../hooks/useShop";
+import ProductFilters from "../components/ProductFilters.jsx";
+import ProductResults from "../components/ProductResults.jsx";
+import { useProductFilters } from "../hooks/useProductFilters.jsx";
+import { useShop } from "../hooks/useShop.jsx";
 import "./products-page.css";
 
 export default function ProductsPage() {

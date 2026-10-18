@@ -40,27 +40,33 @@ Dashboard charts, sample order tables, seller approvals, and shop settings are f
 ```text
 src/
   App.jsx                  # Router and page definitions
-  pages/                   # Home, products, buyer, seller, admin, and 404 pages
-  components/
-    layout/                # Header, footer, app layout, workspace, overlay host
-    home/                  # Hero, benefits, featured finds, makers, newsletter
-    products/              # Product cards, grids, filters, results, details
-    account/               # Buyer order history and saved finds
-    auth/                  # Sign-in and signup dialog
-    cart/                  # Shopping bag drawer
-    checkout/              # Checkout, address form, summary, confirmation
-    dashboard/             # Inventory, stats, chart, tables, settings, dialogs
-    ui/                    # Shared modal, close button, toast
-  context/                 # Shop provider and context
-  hooks/                   # Auth, catalog, cart, orders, storage, scroll reveal
-  services/api.js          # Backend adapter and local demo implementation
-  data/                    # Demo products and site content
-  utils/                   # Currency formatting and browser storage
-  styles/                  # Shared and feature-specific stylesheets
+  main.jsx                 # Application entry point
+  components/              # Component files directly in this folder; no subfolders
+    SiteHeader.jsx
+    SiteFooter.jsx
+    Hero.jsx
+    FeaturedProducts.jsx
+    ProductCard.jsx
+    ProductGrid.jsx
+    ProductFilters.jsx
+    AuthModal.jsx
+    CartDrawer.jsx
+    CheckoutModal.jsx
+    Dashboard.jsx
+    InventoryPanel.jsx
+    ShopProvider.jsx
+    ...                    # Other component/helper JSX files and their CSS files
+  pages/                   # Separate home, catalog, buyer, seller, admin, and 404 pages
+  context/ShopContext.jsx   # Shared context declaration
+  hooks/                   # Auth, catalog, cart, orders, storage, scroll reveal (.jsx)
+  services/api.jsx         # Backend adapter and local demo implementation
+  data/                    # Demo products and site content (.jsx)
+  utils/                   # Currency formatting and browser storage (.jsx)
+  styles/                  # Shared and page-specific stylesheets
 public/images/             # Local photography and source attribution
 ```
 
-Feature components keep their own smaller stylesheets. `App.css`, `dashboard.css`, and `commerce-overlays.css` are import manifests.
+All reusable component files live directly in `src/components`, with no nested component folders. Application JavaScript modules use the `.jsx` extension, including hooks, services, data, and helpers. Tool configuration files keep their standard `.js` filenames. Component stylesheets are also directly in `src/components`. `App.css`, `dashboard.css`, and `commerce-overlays.css` are import manifests.
 
 ## Connect your API
 
