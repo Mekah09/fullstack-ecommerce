@@ -1,9 +1,9 @@
 import { FiArrowUpRight, FiSun } from "react-icons/fi";
 import { LuLeaf } from "react-icons/lu";
-import { useShop } from "../hooks/useShop.jsx";
+import withShop from "./withShop.jsx";
 
-export default function MakersBanner() {
-  const { openAuth } = useShop();
+function MakersBanner({ shop }) {
+  const { openAuth } = shop;
   return (
     <section className="makers-section page-width" data-reveal>
       <div className="makers-image">
@@ -40,3 +40,5 @@ export default function MakersBanner() {
     </section>
   );
 }
+
+export default withShop(MakersBanner);

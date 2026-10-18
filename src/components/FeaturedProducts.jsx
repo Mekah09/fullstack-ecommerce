@@ -1,11 +1,11 @@
 import { FiArrowRight, FiArrowUpRight } from "react-icons/fi";
 import { LuSprout } from "react-icons/lu";
 import { Link } from "react-router-dom";
-import { useShop } from "../hooks/useShop.jsx";
+import withShop from "./withShop.jsx";
 import ProductResults from "./ProductResults.jsx";
 
-export default function FeaturedProducts() {
-  const { products, loading, loadError } = useShop();
+function FeaturedProducts({ shop }) {
+  const { products, loading, loadError } = shop;
   const featured = [...products]
     .sort((a, b) => Number(Boolean(b.featured)) - Number(Boolean(a.featured)))
     .slice(0, 4);
@@ -43,3 +43,5 @@ export default function FeaturedProducts() {
     </section>
   );
 }
+
+export default withShop(FeaturedProducts);

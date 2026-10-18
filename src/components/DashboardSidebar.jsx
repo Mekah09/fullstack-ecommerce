@@ -42,7 +42,12 @@ export default function DashboardSidebar({
             {id === "products" && <span>{productCount}</span>}
             {id === "sellers" && (
               <span>
-                {sellers.filter((seller) => seller.status === "Pending").length}
+                {
+                  sellers.filter(
+                    (seller) =>
+                      String(seller.status).toLowerCase() === "pending",
+                  ).length
+                }
               </span>
             )}
           </button>

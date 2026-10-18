@@ -2,11 +2,11 @@ import { Link } from "react-router-dom";
 import { FiArrowUpRight, FiHeart, FiShield } from "react-icons/fi";
 import { LuLeaf } from "react-icons/lu";
 import { SITE_INFO } from "../data/siteContent.jsx";
-import { useShop } from "../hooks/useShop.jsx";
+import withShop from "./withShop.jsx";
 import Brand from "./Brand.jsx";
 
-export default function SiteFooter() {
-  const { user, openAuth, showInfo } = useShop();
+function SiteFooter({ shop }) {
+  const { user, openAuth, showInfo } = shop;
 
   return (
     <footer className="site-footer">
@@ -82,3 +82,5 @@ export default function SiteFooter() {
     </footer>
   );
 }
+
+export default withShop(SiteFooter);

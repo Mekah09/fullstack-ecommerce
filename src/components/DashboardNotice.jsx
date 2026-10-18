@@ -3,21 +3,20 @@ import { FiActivity, FiTruck, FiUsers } from "react-icons/fi";
 const notices = {
   overview: {
     icon: FiActivity,
-    label: "Demo overview",
+    label: "Your workspace",
     message:
-      "Sales, orders, and seller approvals use sample data. Product changes are saved to your current catalog.",
+      "This overview reflects the products, orders, and sellers returned by your API.",
   },
   sellers: {
     icon: FiUsers,
-    label: "Demo community",
+    label: "Seller community",
     message:
-      "Seller applications are illustrative. Approvals apply only to this preview session.",
+      "Review seller applications and send approval decisions to your backend.",
   },
   orders: {
     icon: FiTruck,
-    label: "Demo orders",
-    message:
-      "Your live orders will appear here once your backend is connected.",
+    label: "Order management",
+    message: "Orders returned by your backend appear here.",
   },
 };
 

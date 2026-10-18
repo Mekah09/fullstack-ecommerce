@@ -1,8 +1,8 @@
-import { useShop } from "../hooks/useShop.jsx";
+import withShop from "./withShop.jsx";
 import ProductGrid from "./ProductGrid.jsx";
 
-export default function SavedFinds() {
-  const { products, favorites } = useShop();
+function SavedFinds({ shop }) {
+  const { products, favorites } = shop;
   const savedProducts = products.filter((product) =>
     favorites.includes(product.id),
   );
@@ -26,3 +26,5 @@ export default function SavedFinds() {
     </section>
   );
 }
+
+export default withShop(SavedFinds);

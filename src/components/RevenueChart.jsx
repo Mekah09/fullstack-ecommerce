@@ -1,66 +1,113 @@
-import { FiTrendingUp } from "react-icons/fi";
+import { currency, countsTowardRevenue } from "./dashboardData.jsx";
 
-export default function RevenueChart({ admin }) {
+export default function RevenueChart({ admin, orders = [], loading = false }) {
+  const revenueOrders = orders.filter(countsTowardRevenue);
+  const total = revenueOrders.reduce(
+    (sum, order) => sum + (Number(order.total) || 0),
+    0,
+  );
+  const daily = new Map();
+  revenueOrders.forEach((order) => {
+    const date = order.createdAt ? new Date(order.createdAt) : null;
+    if (!date || Number.isNaN(date.getTime())) return;
+    const day = date.toISOString().slice(0, 10);
+    daily.set(day, (daily.get(day) || 0) + (Number(order.total) || 0));
+  });
+  const series = [...daily.entries()].sort(([a], [b]) => a.localeCompare(b));
+  const maximum = Math.max(1, ...series.map(([, amount]) => amount));
+  const points = series.map(([, amount], index) => {
+    const x = series.length === 1 ? 300 : (index / (series.length - 1)) * 600;
+    return `${x},${165 - (amount / maximum) * 150}`;
+  });
+  const labels =
+    series.length <= 6
+      ? series
+      : series.filter(
+          (_, index) =>
+            index === 0 ||
+            index === series.length - 1 ||
+            index % Math.ceil(series.length / 5) === 0,
+        );
   return (
     <section className="dash-panel dash-chart-panel">
       <div className="dash-panel-title">
         <div>
           <h2>{admin ? "Marketplace performance" : "Revenue overview"}</h2>
-          <p>A little growth, every day.</p>
+          <p>
+            Daily totals from loaded orders, excluding cancellations and
+            refunds.
+          </p>
         </div>
-        <span className="dash-demo-label">Demo data</span>
       </div>
       <div className="dash-chart-total">
-        {admin ? "$42,856" : "$8,240"}
-        <span>
-          <FiTrendingUp /> 18.6% this month
-        </span>
+        {loading ? "—" : currency(total)}
+        <span>{revenueOrders.length} orders</span>
       </div>
-      <div
-        className="dash-chart"
-        role="img"
-        aria-label="Demo revenue grows steadily from January through June"
-      >
-        <div className="dash-chart-y">
-          <span>$10k</span>
-          <span>$7.5k</span>
-          <span>$5k</span>
-          <span>$2.5k</span>
+      {loading ? (
+        <div className="dash-empty" role="status">
+          <p>Loading order revenue…</p>
         </div>
-        <div className="dash-chart-body">
-          <svg
-            viewBox="0 0 600 180"
-            preserveAspectRatio="none"
-            aria-hidden="true"
-          >
-            <defs>
-              <linearGradient id="dashChartFill" x1="0" y1="0" x2="0" y2="1">
-                <stop offset="0%" stopColor="#8baa7e" stopOpacity=".24" />
-                <stop offset="100%" stopColor="#8baa7e" stopOpacity="0" />
-              </linearGradient>
-            </defs>
-            <g stroke="#e8ebe4" strokeDasharray="4 5">
-              <path d="M0 15H600M0 65H600M0 115H600M0 165H600" />
-            </g>
-            <path
-              d="M0 151C25 151 38 135 60 138S104 164 130 128S165 107 190 116S229 138 254 97S298 103 325 83S358 106 383 66S423 75 450 43S488 64 510 35S559 55 600 14V180H0Z"
-              fill="url(#dashChartFill)"
-            />
-            <path
-              d="M0 151C25 151 38 135 60 138S104 164 130 128S165 107 190 116S229 138 254 97S298 103 325 83S358 106 383 66S423 75 450 43S488 64 510 35S559 55 600 14"
-              fill="none"
-              stroke="#3d6b4e"
-              strokeWidth="3"
-              vectorEffect="non-scaling-stroke"
-            />
-          </svg>
-          <div className="dash-chart-x">
-            {["Jan", "Feb", "Mar", "Apr", "May", "Jun"].map((month) => (
-              <span key={month}>{month}</span>
-            ))}
+      ) : !series.length ? (
+        <div className="dash-empty">
+          <h3>No revenue history yet</h3>
+          <p>Orders with dates will appear in your revenue chart.</p>
+        </div>
+      ) : (
+        <div
+          className="dash-chart"
+          role="img"
+          aria-label={`Daily revenue for ${series.length} days, total ${currency(total)}`}
+        >
+          <div className="dash-chart-y">
+            <span>{currency(maximum)}</span>
+            <span>{currency(maximum / 2)}</span>
+            <span>{currency(0)}</span>
+          </div>
+          <div className="dash-chart-body">
+            <svg
+              viewBox="0 0 600 180"
+              preserveAspectRatio="none"
+              aria-hidden="true"
+            >
+              <g stroke="#e8ebe4" strokeDasharray="4 5">
+                <path d="M0 15H600M0 90H600M0 165H600" />
+              </g>
+              {points.length > 1 && (
+                <polyline
+                  points={points.join(" ")}
+                  fill="none"
+                  stroke="#3d6b4e"
+                  strokeWidth="3"
+                  vectorEffect="non-scaling-stroke"
+                />
+              )}
+              {points.map((point, index) => {
+                const [x, y] = point.split(",");
+                return (
+                  <circle
+                    key={series[index][0]}
+                    cx={x}
+                    cy={y}
+                    r="4"
+                    fill="#3d6b4e"
+                  />
+                );
+              })}
+            </svg>
+            <div className="dash-chart-x">
+              {labels.map(([day]) => (
+                <span key={day}>
+                  {new Date(`${day}T00:00:00Z`).toLocaleDateString(undefined, {
+                    month: "short",
+                    day: "numeric",
+                    timeZone: "UTC",
+                  })}
+                </span>
+              ))}
+            </div>
           </div>
         </div>
-      </div>
+      )}
     </section>
   );
 }

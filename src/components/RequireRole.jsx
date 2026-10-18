@@ -1,9 +1,9 @@
 import { FiArrowRight, FiLock } from "react-icons/fi";
 import { Link } from "react-router-dom";
-import { useShop } from "../hooks/useShop.jsx";
+import withShop from "./withShop.jsx";
 
-export default function RequireRole({ role, children }) {
-  const { user, authLoading, openAuth } = useShop();
+function RequireRole({ role, children, shop }) {
+  const { user, authLoading, openAuth } = shop;
   if (authLoading)
     return (
       <main id="main-content" className="buyer-page utility-page page-width">
@@ -39,3 +39,5 @@ export default function RequireRole({ role, children }) {
     </main>
   );
 }
+
+export default withShop(RequireRole);

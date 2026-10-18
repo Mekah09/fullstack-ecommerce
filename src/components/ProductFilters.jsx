@@ -12,7 +12,6 @@ import {
   LuLamp,
   LuSprout,
 } from "react-icons/lu";
-import { categories } from "../data/products.jsx";
 
 const categoryIcons = {
   Furniture: LuArmchair,
@@ -23,6 +22,7 @@ const categoryIcons = {
 };
 
 export default function ProductFilters({
+  categories = [],
   category,
   search,
   sort,

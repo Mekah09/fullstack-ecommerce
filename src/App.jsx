@@ -1,4 +1,5 @@
-import { BrowserRouter, Route, Routes } from "react-router-dom";
+import { Route, Routes } from "react-router-dom";
+import AppRouter from "./components/AppRouter.jsx";
 import ShopProvider from "./components/ShopProvider.jsx";
 import AppLayout from "./components/AppLayout.jsx";
 import RequireRole from "./components/RequireRole.jsx";
@@ -12,7 +13,7 @@ import "./App.css";
 
 export default function App() {
   return (
-    <BrowserRouter>
+    <AppRouter>
       <ShopProvider>
         <Routes>
           <Route element={<AppLayout />}>
@@ -39,6 +40,6 @@ export default function App() {
           </Route>
         </Routes>
       </ShopProvider>
-    </BrowserRouter>
+    </AppRouter>
   );
 }

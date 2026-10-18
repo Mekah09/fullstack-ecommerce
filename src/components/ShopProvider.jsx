@@ -1,128 +1,182 @@
-import { useCallback, useEffect, useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { Component } from "react";
+import { RouteContext } from "../context/RouteContext.jsx";
 import { ShopContext } from "../context/ShopContext.jsx";
-import { useAuth } from "../hooks/useAuth.jsx";
-import { useCart } from "../hooks/useCart.jsx";
-import { useCatalog } from "../hooks/useCatalog.jsx";
-import { useOrders } from "../hooks/useOrders.jsx";
-import { usePersistedState } from "../hooks/usePersistedState.jsx";
+import { readStoredArray, writeStored } from "../utils/storage.jsx";
+import {
+  cartKey,
+  cartRecords,
+  changeCartQuantity,
+  increaseCart,
+} from "../utils/cart.jsx";
 import * as api from "../services/api.jsx";
+import * as account from "../services/accountActions.jsx";
+import * as catalog from "../services/catalogActions.jsx";
+import * as orders from "../services/orderActions.jsx";
 
-export default function ShopProvider({ children }) {
-  const navigate = useNavigate();
-  const [overlay, setOverlay] = useState(null);
-  const [info, setInfo] = useState(null);
-  const [toast, setToast] = useState("");
-  const [checkoutBusy, setCheckoutBusy] = useState(false);
-  const [lastOrder, setLastOrder] = useState(null);
-  const [favorites, setFavorites] = usePersistedState("nook_favorites", []);
-  const notify = useCallback((message) => setToast(message), []);
-  const auth = useAuth();
-  const catalog = useCatalog();
-  const bag = useCart(notify);
-  const orderState = useOrders(auth.user?.id, auth.authLoading);
-
-  useEffect(() => {
-    if (!toast) return;
-    const timer = setTimeout(() => setToast(""), 3500);
-    return () => clearTimeout(timer);
-  }, [toast]);
-
-  function toggleFavorite(id) {
-    setFavorites((current) =>
-      current.includes(id)
-        ? current.filter((item) => item !== id)
-        : [...current, id],
-    );
-  }
-  function openAuth(role = "buyer", mode = "signup") {
-    setOverlay({ type: "auth", role, mode });
-  }
-  function closeOverlay() {
-    if (!checkoutBusy) setOverlay(null);
-  }
-  async function authenticate(data) {
-    const account = await auth.authenticate(data);
-    setOverlay(null);
-    notify(
-      `Welcome ${account.name?.split(" ")[0] || "to Nook"}! Make yourself at home.`,
-    );
-    navigate(
-      account.role === "seller"
-        ? "/seller"
-        : account.role === "admin"
-          ? "/admin"
-          : "/account",
-    );
-  }
-  async function logout() {
-    await auth.logout();
-    orderState.setOrders([]);
-    navigate("/");
-    notify("You’re signed out. See you around!");
-  }
-  async function addProduct(fields) {
-    const product = await catalog.addProduct({
-      ...fields,
-      seller: auth.user?.name || "Your shop",
-    });
-    notify("Your new find is live in the shop.");
-    return product;
-  }
-  async function updateProduct(id, fields) {
-    const product = await catalog.updateProduct(id, fields);
-    notify("Product updated. Looking good!");
-    return product;
-  }
-  async function deleteProduct(id) {
-    await catalog.deleteProduct(id);
-    bag.removeProductFromCart(id);
-    notify("Product removed from your shop.");
-  }
-  async function placeOrder(data) {
-    setCheckoutBusy(true);
-    try {
-      const order = await api.createOrder(data);
-      orderState.setOrders((current) => [order, ...current]);
-      setLastOrder(order);
-      bag.clearCart();
-      setOverlay({ type: "success" });
-      catalog.refreshProducts().catch(() => {});
-    } finally {
-      setCheckoutBusy(false);
-    }
-  }
-
-  const value = {
-    ...catalog,
-    ...auth,
-    ...bag,
-    ...orderState,
-    isDemo: !api.API_BASE_URL,
-    favorites,
-    toggleFavorite,
-    overlay,
-    info,
-    toast,
-    checkoutBusy,
-    lastOrder,
-    notify,
-    dismissToast: () => setToast(""),
-    showInfo: setInfo,
-    closeInfo: () => setInfo(null),
-    openAuth,
-    closeOverlay,
-    openCart: () => setOverlay({ type: "cart" }),
-    viewProduct: (product) => setOverlay({ type: "product", product }),
-    openCheckout: () => {
-      if (bag.cart.length) setOverlay({ type: "checkout" });
-    },
-    authenticate,
-    logout,
-    addProduct,
-    updateProduct,
-    deleteProduct,
-    placeOrder,
+export default class ShopProvider extends Component {
+  static contextType = RouteContext;
+  alive = false;
+  accountVersion = 0;
+  catalogVersion = 0;
+  savedCartRecords = readStoredArray("nook_cart");
+  savedFavoriteIds = readStoredArray("nook_favorites");
+  state = {
+    products: [],
+    loading: true,
+    loadError: "",
+    user: null,
+    authLoading: true,
+    cart: [],
+    favorites: [],
+    orders: [],
+    ordersLoading: false,
+    ordersError: "",
+    sellers: [],
+    sellersLoading: false,
+    sellersError: "",
+    overlay: null,
+    info: null,
+    toast: "",
+    checkoutBusy: false,
+    lastOrder: null,
   };
-  return <ShopContext.Provider value={value}>{children}</ShopContext.Provider>;
+
+  componentDidMount() {
+    this.alive = true;
+    this.refreshProducts().catch(() => {});
+    account.restoreSession(this);
+  }
+  componentWillUnmount() {
+    this.alive = false;
+    ++this.accountVersion;
+    ++this.catalogVersion;
+    clearTimeout(this.toastTimer);
+  }
+
+  navigate = (to, options) => this.context.navigate(to, options);
+  notify = (message) => {
+    if (!this.alive) return;
+    clearTimeout(this.toastTimer);
+    this.setState({ toast: message });
+    this.toastTimer = setTimeout(() => {
+      if (this.alive) this.setState({ toast: "" });
+    }, 3500);
+  };
+  persistShopping = () => {
+    this.savedCartRecords = cartRecords(this.state.cart);
+    this.savedFavoriteIds = this.state.favorites;
+    writeStored("nook_cart", this.savedCartRecords);
+    writeStored("nook_favorites", this.savedFavoriteIds);
+  };
+  toggleFavorite = (id) =>
+    this.setState(
+      (current) => ({
+        favorites: current.favorites.includes(id)
+          ? current.favorites.filter((item) => item !== id)
+          : [...current.favorites, id],
+      }),
+      this.persistShopping,
+    );
+  openAuth = (role = "buyer", mode = "signup") =>
+    this.setState({ overlay: { type: "auth", role, mode } });
+  closeOverlay = () => {
+    if (!this.state.checkoutBusy) this.setState({ overlay: null });
+  };
+  openCart = () => this.setState({ overlay: { type: "cart" } });
+  viewProduct = (product) =>
+    this.setState({ overlay: { type: "product", product } });
+  openCheckout = () => {
+    if (this.state.cart.length)
+      this.setState({ overlay: { type: "checkout" } });
+  };
+  showInfo = (info) => this.setState({ info });
+  closeInfo = () => this.setState({ info: null });
+  dismissToast = () => {
+    clearTimeout(this.toastTimer);
+    this.setState({ toast: "" });
+  };
+
+  addToCart = (product, requested = 1) => {
+    const live = this.state.products.find((item) => item.id === product.id);
+    const used = this.state.cart
+      .filter((item) => item.id === product.id)
+      .reduce((sum, item) => sum + item.quantity, 0);
+    if (!live || live.stock <= used) {
+      this.notify("This quantity is currently unavailable.");
+      return false;
+    }
+    const quantity = Math.min(
+      Math.max(1, Math.floor(Number(requested) || 1)),
+      live.stock - used,
+    );
+    const item = {
+      ...live,
+      selectedColor: product.selectedColor,
+      selectedFinish: product.selectedFinish,
+    };
+    this.setState(
+      (current) => ({ cart: increaseCart(current.cart, item, quantity) }),
+      this.persistShopping,
+    );
+    this.notify(`${live.name} added to your bag`);
+    return true;
+  };
+  updateQuantity = (key, quantity) =>
+    this.setState(
+      (current) => ({ cart: changeCartQuantity(current.cart, key, quantity) }),
+      this.persistShopping,
+    );
+  removeFromCart = (key) =>
+    this.setState(
+      (current) => ({
+        cart: current.cart.filter((item) => cartKey(item) !== key),
+      }),
+      this.persistShopping,
+    );
+  authenticate = (data) => account.authenticate(this, data);
+  logout = () => account.logout(this);
+  refreshProducts = () => catalog.refreshProducts(this);
+  addProduct = (fields) => catalog.addProduct(this, fields);
+  updateProduct = (id, fields) => catalog.updateProduct(this, id, fields);
+  deleteProduct = (id) => catalog.deleteProduct(this, id);
+  placeOrder = (data) => orders.placeOrder(this, data);
+  approveSeller = (id) => orders.approveSeller(this, id);
+  subscribeNewsletter = (email) => api.subscribeNewsletter(email);
+
+  render() {
+    const value = {
+      ...this.state,
+      location: this.context.location,
+      navigate: this.navigate,
+      cartCount: this.state.cart.reduce((sum, item) => sum + item.quantity, 0),
+      apiConfigured: api.API_CONFIGURED,
+      notify: this.notify,
+      dismissToast: this.dismissToast,
+      toggleFavorite: this.toggleFavorite,
+      openAuth: this.openAuth,
+      closeOverlay: this.closeOverlay,
+      openCart: this.openCart,
+      viewProduct: this.viewProduct,
+      openCheckout: this.openCheckout,
+      showInfo: this.showInfo,
+      closeInfo: this.closeInfo,
+      addToCart: this.addToCart,
+      updateQuantity: this.updateQuantity,
+      removeFromCart: this.removeFromCart,
+      authenticate: this.authenticate,
+      logout: this.logout,
+      refreshProducts: this.refreshProducts,
+      addProduct: this.addProduct,
+      updateProduct: this.updateProduct,
+      deleteProduct: this.deleteProduct,
+      placeOrder: this.placeOrder,
+      approveSeller: this.approveSeller,
+      subscribeNewsletter: this.subscribeNewsletter,
+    };
+    return (
+      <ShopContext.Provider value={value}>
+        {this.props.children}
+      </ShopContext.Provider>
+    );
+  }
 }

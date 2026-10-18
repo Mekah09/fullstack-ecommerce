@@ -16,3 +16,8 @@ export function writeStored(key, value) {
     /* Storage-restricted browsers retain state for this tab. */
   }
 }
+
+export function readStoredArray(key) {
+  const value = readStored(key, []);
+  return Array.isArray(value) ? value : [];
+}

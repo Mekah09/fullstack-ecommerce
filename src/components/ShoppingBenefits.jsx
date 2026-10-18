@@ -5,7 +5,7 @@ const benefits = [
   {
     Icon: FiTruck,
     title: "A little delivery joy",
-    text: "Free shipping over $100",
+    text: "Delivery details at checkout",
   },
   {
     Icon: LuLeaf,
@@ -19,8 +19,8 @@ const benefits = [
   },
   {
     Icon: FiPackage,
-    title: "Love it, or return it",
-    text: "Easy 30-day returns",
+    title: "Shop thoughtfully",
+    text: "Store policies apply",
   },
 ];
 

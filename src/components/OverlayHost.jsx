@@ -1,4 +1,4 @@
-import { useShop } from "../hooks/useShop.jsx";
+import withShop from "./withShop.jsx";
 import { AuthModal } from "./AuthModal.jsx";
 import { CartDrawer } from "./CartDrawer.jsx";
 import { ProductModal } from "./ProductModal.jsx";
@@ -7,8 +7,7 @@ import OrderConfirmation from "./OrderConfirmation.jsx";
 import InfoModal from "./InfoModal.jsx";
 import Toast from "./Toast.jsx";
 
-export default function OverlayHost() {
-  const shop = useShop();
+function OverlayHost({ shop }) {
   const { overlay, closeOverlay } = shop;
   return (
     <>
@@ -16,7 +15,6 @@ export default function OverlayHost() {
         <AuthModal
           initialRole={overlay.role}
           initialMode={overlay.mode}
-          isDemo={shop.isDemo}
           onClose={closeOverlay}
           onSubmit={shop.authenticate}
         />
@@ -49,3 +47,5 @@ export default function OverlayHost() {
     </>
   );
 }
+
+export default withShop(OverlayHost);

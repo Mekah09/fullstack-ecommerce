@@ -3,6 +3,8 @@ import ProductTable from "./ProductTable.jsx";
 
 export default function InventoryPanel({
   compact = false,
+  loading = false,
+  error = "",
   managedProducts,
   filteredProducts,
   search,
@@ -38,32 +40,44 @@ export default function InventoryPanel({
           </label>
         )}
       </div>
+      {error && (
+        <p className="dash-form-error" role="alert">
+          {error}
+        </p>
+      )}
+      {loading && (
+        <div className="dash-empty" role="status">
+          <p>Loading your products…</p>
+        </div>
+      )}
       <div className="dash-table-scroll">
         <ProductTable
           products={compact ? managedProducts.slice(0, 4) : filteredProducts}
           onEdit={onEdit}
           onDelete={onDelete}
         />
-        {!(compact ? managedProducts : filteredProducts).length && (
-          <div className="dash-empty">
-            <FiPackage />
-            <h3>
-              {!compact && search
-                ? "No products found"
-                : "Your next chapter starts here"}
-            </h3>
-            <p>
-              {!compact && search
-                ? "Try a different product name or category."
-                : "Add your first product and give it a home on Nook."}
-            </p>
-            {(compact || !search) && (
-              <button className="dash-primary" onClick={() => onAdd()}>
-                <FiPlus /> Add your first product
-              </button>
-            )}
-          </div>
-        )}
+        {!loading &&
+          !error &&
+          !(compact ? managedProducts : filteredProducts).length && (
+            <div className="dash-empty">
+              <FiPackage />
+              <h3>
+                {!compact && search
+                  ? "No products found"
+                  : "Your next chapter starts here"}
+              </h3>
+              <p>
+                {!compact && search
+                  ? "Try a different product name or category."
+                  : "Add your first product and give it a home on Nook."}
+              </p>
+              {(compact || !search) && (
+                <button className="dash-primary" onClick={() => onAdd()}>
+                  <FiPlus /> Add your first product
+                </button>
+              )}
+            </div>
+          )}
       </div>
     </section>
   );

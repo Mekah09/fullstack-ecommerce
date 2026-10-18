@@ -1,6 +1,6 @@
 import { money } from "../utils/format.jsx";
 
-export default function OrderSummary({ items, subtotal, shipping }) {
+export default function OrderSummary({ items, subtotal }) {
   return (
     <div className="checkout-summary">
       {items.map((item) => (
@@ -13,11 +13,11 @@ export default function OrderSummary({ items, subtotal, shipping }) {
       ))}
       <div>
         <span>Shipping</span>
-        <b>{shipping ? money(shipping) : "On us"}</b>
+        <b>Calculated by the store</b>
       </div>
       <div className="checkout-total">
-        <span>Total</span>
-        <b>{money(subtotal + shipping)}</b>
+        <span>Estimated subtotal</span>
+        <b>{money(subtotal)}</b>
       </div>
     </div>
   );

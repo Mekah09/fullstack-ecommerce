@@ -1,46 +1,40 @@
-import { initialProducts } from "../data/products.jsx";
+export const API_BASE_URL = (import.meta.env?.VITE_API_BASE_URL || "")
+  .trim()
+  .replace(/\/+$/, "");
+export const API_CONFIGURED = Boolean(API_BASE_URL);
 
-export const API_BASE_URL = (import.meta.env?.VITE_API_BASE_URL || "").replace(
-  /\/$/,
-  "",
-);
+const sessionKeys = { user: "nook.user.v1", token: "nook.token.v1" };
+const sessionMemory = new Map();
 
-const keys = {
-  products: "nook.products.v1",
-  user: "nook.user.v1",
-  token: "nook.token.v1",
-  cart: "nook_cart",
-  orders: "nook.orders.v1",
-};
-const memory = new Map();
-
-function read(key, fallback, session = false) {
+function readSession(key) {
   try {
-    const storage = session ? window.sessionStorage : window.localStorage;
-    const value = storage.getItem(key);
-    return value ? JSON.parse(value) : fallback;
+    const value = window.sessionStorage.getItem(key);
+    return value === null
+      ? (sessionMemory.get(key) ?? null)
+      : JSON.parse(value);
   } catch {
-    return memory.has(key) ? memory.get(key) : fallback;
+    return sessionMemory.get(key) ?? null;
   }
 }
 
-function write(key, value, session = false) {
-  memory.set(key, value);
+function writeSession(key, value) {
+  if (value === null) sessionMemory.delete(key);
+  else sessionMemory.set(key, value);
   try {
-    const storage = session ? window.sessionStorage : window.localStorage;
-    if (value === null) storage.removeItem(key);
-    else storage.setItem(key, JSON.stringify(value));
+    if (value === null) window.sessionStorage.removeItem(key);
+    else window.sessionStorage.setItem(key, JSON.stringify(value));
   } catch {
-    // Private browsers may deny storage. The current tab still works in memory.
+    // A browser that blocks storage keeps the session in this tab's memory.
   }
-}
-
-function makeId(prefix) {
-  return `${prefix}-${globalThis.crypto?.randomUUID?.() || `${Date.now()}-${Math.random().toString(36).slice(2, 8)}`}`;
 }
 
 async function request(path, options = {}) {
-  const token = read(keys.token, null, true);
+  if (!API_CONFIGURED) {
+    throw new Error(
+      "The store is not connected yet. Add VITE_API_BASE_URL to connect your backend.",
+    );
+  }
+  const token = readSession(sessionKeys.token);
   let response;
   try {
     response = await fetch(`${API_BASE_URL}${path}`, {
@@ -54,16 +48,31 @@ async function request(path, options = {}) {
     });
   } catch {
     throw new Error(
-      "Unable to reach the store. Please check your connection and try again.",
+      "Unable to reach the store. Check your connection and the API's CORS settings, then try again.",
     );
   }
-  const payload =
-    response.status === 204 ? null : await response.json().catch(() => null);
+
+  let payload = null;
+  if (response.status !== 204) {
+    const body = await response.text();
+    if (body) {
+      try {
+        payload = JSON.parse(body);
+      } catch {
+        if (response.ok) {
+          throw new Error(
+            "The API returned invalid JSON. Check the backend response.",
+          );
+        }
+      }
+    }
+  }
   if (!response.ok) {
+    const message = payload?.message || payload?.error?.message;
     throw new Error(
-      payload?.message ||
-        payload?.error?.message ||
-        `The request failed (${response.status}). Please try again.`,
+      typeof message === "string"
+        ? message
+        : `The request failed (${response.status}). Please try again.`,
     );
   }
   return payload;
@@ -75,29 +84,102 @@ function extract(payload, property) {
   );
 }
 
+function identifier(value, kind) {
+  if (
+    !["string", "number"].includes(typeof value) ||
+    !String(value).trim() ||
+    (typeof value === "number" && !Number.isFinite(value))
+  ) {
+    throw new Error(`The API returned a ${kind} without a valid ID.`);
+  }
+  return String(value);
+}
+
+function nonnegativeNumber(value, field, optional = false) {
+  if (optional && (value === undefined || value === null || value === ""))
+    return undefined;
+  const number = Number(value);
+  if (
+    !["string", "number"].includes(typeof value) ||
+    !String(value).trim() ||
+    !Number.isFinite(number) ||
+    number < 0
+  ) {
+    throw new Error(`The API returned an invalid product ${field}.`);
+  }
+  return number;
+}
+
+function normalizeProduct(product) {
+  if (!product || typeof product !== "object" || Array.isArray(product)) {
+    throw new Error("The API returned an invalid product.");
+  }
+  const name = product.name ?? product.title;
+  if (typeof name !== "string" || !name.trim()) {
+    throw new Error("The API returned a product without a name.");
+  }
+  const stock = nonnegativeNumber(product.stock, "stock", true) ?? 0;
+  if (!Number.isInteger(stock))
+    throw new Error("The API returned invalid product stock.");
+  const category =
+    typeof product.category === "string"
+      ? product.category
+      : product.category?.name;
+  const seller =
+    typeof product.seller === "string" ? product.seller : product.seller?.name;
+  const sellerId =
+    product.sellerId ?? product.seller?.id ?? product.seller?._id;
+  const normalized = {
+    ...product,
+    id: identifier(product.id ?? product._id, "product"),
+    name: name.trim(),
+    category: typeof category === "string" ? category : "",
+    seller: typeof seller === "string" ? seller : "",
+    price: nonnegativeNumber(product.price, "price"),
+    stock,
+    colors: Array.isArray(product.colors)
+      ? product.colors.filter((color) => typeof color === "string")
+      : [],
+  };
+  if (sellerId !== undefined && sellerId !== null)
+    normalized.sellerId = String(sellerId);
+  for (const field of ["rating", "reviews", "originalPrice"]) {
+    const value = nonnegativeNumber(product[field], field, true);
+    if (value === undefined) delete normalized[field];
+    else normalized[field] = value;
+  }
+  return normalized;
+}
+
 function publicUser(user) {
-  return { id: user.id, name: user.name, email: user.email, role: user.role };
+  if (!user || !["buyer", "seller", "admin"].includes(user.role)) {
+    throw new Error(
+      "The server returned an invalid account. Please sign in again.",
+    );
+  }
+  return {
+    id: identifier(user.id ?? user._id, "user"),
+    name: typeof user.name === "string" ? user.name : "",
+    email: typeof user.email === "string" ? user.email : "",
+    role: user.role,
+  };
 }
 
 function saveAuth(payload) {
-  const user = extract(payload, "user");
-  if (!user?.id || !user?.role)
-    throw new Error(
-      "The server returned an invalid account. Please try signing in again.",
-    );
+  const user = publicUser(extract(payload, "user"));
   const token =
     payload?.token ??
     payload?.accessToken ??
     payload?.data?.token ??
     payload?.data?.accessToken;
-  if (!token)
+  if (typeof token !== "string" || !token.trim()) {
     throw new Error(
-      "The server did not return an access token. Please check the authentication API.",
+      "The server did not return an access token. Check the authentication API.",
     );
-  const safeUser = publicUser(user);
-  write(keys.token, token, true);
-  write(keys.user, safeUser, true);
-  return safeUser;
+  }
+  writeSession(sessionKeys.token, token);
+  writeSession(sessionKeys.user, user);
+  return user;
 }
 
 function validateCredentials({ email, password }) {
@@ -107,22 +189,35 @@ function validateCredentials({ email, password }) {
     throw new Error("Please use a password with at least 6 characters.");
 }
 
-function demoUserId(email, role) {
-  return `demo-${role}-${encodeURIComponent(email.trim().toLowerCase())}`;
+function normalizeOrder(order) {
+  if (!order || typeof order !== "object" || !Array.isArray(order.items)) {
+    throw new Error("The API returned an invalid order.");
+  }
+  const total = Number(order.total);
+  if (
+    !["number", "string"].includes(typeof order.total) ||
+    !String(order.total).trim() ||
+    !Number.isFinite(total) ||
+    total < 0
+  ) {
+    throw new Error("The API returned an order without a valid total.");
+  }
+  return { ...order, id: identifier(order.id ?? order._id, "order"), total };
 }
 
 function orderPayload(input) {
   if (!input.items?.length)
     throw new Error("Add something to your bag before checking out.");
   const items = input.items.map((item) => {
-    const productId = item.productId || item.id || item.product?.id;
+    const productId = item.productId ?? item.id ?? item.product?.id;
     const quantity = Number(item.quantity);
-    if (!productId || !Number.isInteger(quantity) || quantity < 1)
+    if (!productId || !Number.isInteger(quantity) || quantity < 1) {
       throw new Error(
         "Please choose a valid product and quantity for each item.",
       );
+    }
     return {
-      productId,
+      productId: String(productId),
       quantity,
       ...(item.selectedColor ? { selectedColor: item.selectedColor } : {}),
     };
@@ -137,87 +232,58 @@ function orderPayload(input) {
 }
 
 export async function getProducts() {
-  if (API_BASE_URL) return extract(await request("/products"), "products");
-  return read(keys.products, initialProducts).map((product) => ({
-    ...product,
-  }));
+  const products = await request("/products");
+  if (!Array.isArray(products)) {
+    throw new Error(
+      "The products API must return an array of product objects.",
+    );
+  }
+  const normalized = products.map(normalizeProduct);
+  if (
+    new Set(normalized.map((product) => product.id)).size !== normalized.length
+  ) {
+    throw new Error("The products API returned duplicate product IDs.");
+  }
+  return normalized;
 }
 
 export async function createProduct(input) {
-  if (API_BASE_URL)
-    return extract(
+  return normalizeProduct(
+    extract(
       await request("/products", {
         method: "POST",
         body: JSON.stringify(input),
       }),
       "product",
-    );
-  const product = {
-    rating: 0,
-    reviews: 0,
-    ...input,
-    id: makeId("product"),
-    sellerId: read(keys.user, null)?.id,
-    price: Number(input.price),
-    stock: Number(input.stock || 0),
-  };
-  const products = await getProducts();
-  write(keys.products, [product, ...products]);
-  return product;
+    ),
+  );
 }
 
 export async function updateProduct(id, updates) {
-  if (API_BASE_URL)
-    return extract(
+  return normalizeProduct(
+    extract(
       await request(`/products/${encodeURIComponent(id)}`, {
         method: "PATCH",
         body: JSON.stringify(updates),
       }),
       "product",
-    );
-  const products = await getProducts();
-  const current = products.find((product) => product.id === id);
-  if (!current) throw new Error("This product is no longer available.");
-  const product = { ...current, ...updates, id };
-  write(
-    keys.products,
-    products.map((item) => (item.id === id ? product : item)),
+    ),
   );
-  return product;
 }
 
 export async function deleteProduct(id) {
-  if (API_BASE_URL) {
-    await request(`/products/${encodeURIComponent(id)}`, { method: "DELETE" });
-  } else {
-    write(
-      keys.products,
-      (await getProducts()).filter((product) => product.id !== id),
-    );
-  }
-  return { id };
+  await request(`/products/${encodeURIComponent(id)}`, { method: "DELETE" });
+  return { id: String(id) };
 }
 
-export async function signIn({ email, password, role = "buyer" }) {
+export async function signIn({ email, password }) {
   validateCredentials({ email, password });
-  if (API_BASE_URL)
-    return saveAuth(
-      await request("/auth/login", {
-        method: "POST",
-        body: JSON.stringify({ email, password }),
-      }),
-    );
-  if (!["buyer", "seller", "admin"].includes(role))
-    throw new Error("Please select a valid account type.");
-  // These are local preview identities, not authenticated accounts.
-  const user = {
-    id: demoUserId(email, role),
-    name: email.split("@")[0].replace(/[._-]/g, " "),
-    email,
-    role,
-  };
-  write(keys.user, user);
-  return user;
+  return saveAuth(
+    await request("/auth/login", {
+      method: "POST",
+      body: JSON.stringify({ email: email.trim(), password }),
+    }),
+  );
 }
 
 export async function signUp({ name, email, password, role = "buyer" }) {
@@ -225,118 +291,79 @@ export async function signUp({ name, email, password, role = "buyer" }) {
   if (!name?.trim()) throw new Error("Please enter your name.");
   if (!["buyer", "seller"].includes(role))
     throw new Error("You can register as a buyer or a seller.");
-  if (API_BASE_URL)
-    return saveAuth(
-      await request("/auth/register", {
-        method: "POST",
-        body: JSON.stringify({ name: name.trim(), email, password, role }),
+  return saveAuth(
+    await request("/auth/register", {
+      method: "POST",
+      body: JSON.stringify({
+        name: name.trim(),
+        email: email.trim(),
+        password,
+        role,
       }),
-    );
-  const user = { id: demoUserId(email, role), name: name.trim(), email, role };
-  write(keys.user, user);
-  return user;
+    }),
+  );
 }
 
 export async function getCurrentUser() {
-  if (!API_BASE_URL) return read(keys.user, null);
-  if (!read(keys.token, null, true)) return null;
-  const user = extract(await request("/auth/me"), "user");
-  const safeUser = publicUser(user);
-  write(keys.user, safeUser, true);
-  return safeUser;
+  if (!readSession(sessionKeys.token)) return null;
+  const user = publicUser(extract(await request("/auth/me"), "user"));
+  writeSession(sessionKeys.user, user);
+  return user;
 }
 
 export async function signOut() {
-  write(keys.user, null);
-  write(keys.user, null, true);
-  write(keys.token, null, true);
-}
-
-export async function getCart() {
-  return read(keys.cart, []);
-}
-
-export async function saveCart(items) {
-  write(keys.cart, items);
-  return items;
+  writeSession(sessionKeys.user, null);
+  writeSession(sessionKeys.token, null);
 }
 
 export async function getOrders() {
-  if (API_BASE_URL)
-    return read(keys.token, null, true)
-      ? extract(await request("/orders"), "orders")
-      : [];
-  const userId = read(keys.user, null)?.id || "guest";
-  return read(keys.orders, []).filter((order) => order.userId === userId);
+  if (!readSession(sessionKeys.token)) return [];
+  const orders = extract(await request("/orders"), "orders");
+  if (!Array.isArray(orders))
+    throw new Error("The orders API must return an array.");
+  return orders.map(normalizeOrder);
 }
 
 export async function createOrder(input) {
-  const payload = orderPayload(input);
-  if (API_BASE_URL)
-    return extract(
+  return normalizeOrder(
+    extract(
       await request("/orders", {
         method: "POST",
-        body: JSON.stringify(payload),
+        body: JSON.stringify(orderPayload(input)),
       }),
       "order",
-    );
-  const products = await getProducts();
-  const quantities = new Map();
-  const variants = new Map();
-  payload.items.forEach((item, index) => {
-    const id = item.productId;
-    const key = JSON.stringify([id, item.selectedColor || ""]);
-    quantities.set(id, (quantities.get(id) || 0) + item.quantity);
-    const existing = variants.get(key);
-    variants.set(key, {
-      ...item,
-      quantity: (existing?.quantity || 0) + item.quantity,
-      ...(input.items[index].selectedFinish
-        ? { selectedFinish: input.items[index].selectedFinish }
-        : {}),
-    });
-  });
-  const items = [...variants.values()].map((item) => {
-    const product = products.find((entry) => entry.id === item.productId);
-    if (!product || quantities.get(item.productId) > product.stock) {
-      throw new Error(
-        `Please check the available quantity for ${product?.name || "this product"}.`,
-      );
-    }
-    return {
-      ...item,
-      name: product.name,
-      image: product.image,
-      price: product.price,
-    };
-  });
-  const subtotal = items.reduce(
-    (total, item) => total + item.price * item.quantity,
-    0,
+    ),
   );
-  const shipping = subtotal >= 100 ? 0 : 8;
-  const order = {
-    id: makeId("order"),
-    userId: read(keys.user, null)?.id || "guest",
-    shippingAddress: payload.shippingAddress,
-    items,
-    subtotal,
-    shipping,
-    total: Number((subtotal + shipping).toFixed(2)),
-    status: "Confirmed",
-    createdAt: new Date().toISOString(),
-  };
-  write(keys.orders, [order, ...read(keys.orders, [])]);
-  write(
-    keys.products,
-    products.map((product) => ({
-      ...product,
-      stock:
-        product.stock -
-        items
-          .filter((item) => item.productId === product.id)
-          .reduce((quantity, item) => quantity + item.quantity, 0),
-    })),
+}
+
+export async function getSellers() {
+  const sellers = extract(await request("/admin/sellers"), "sellers");
+  if (!Array.isArray(sellers))
+    throw new Error("The sellers API must return an array.");
+  return sellers.map((seller) => ({
+    ...seller,
+    id: identifier(seller.id ?? seller._id, "seller"),
+  }));
+}
+
+export async function approveSeller(id) {
+  const seller = extract(
+    await request(`/admin/sellers/${encodeURIComponent(id)}`, {
+      method: "PATCH",
+      body: JSON.stringify({ status: "Approved" }),
+    }),
+    "seller",
   );
-  return order;
+  if (!seller || typeof seller !== "object")
+    throw new Error("The API returned an invalid seller.");
+  return { ...seller, id: identifier(seller.id ?? seller._id, "seller") };
+}
+
+export async function subscribeNewsletter(email) {
+  if (!/^\S+@\S+\.\S+$/.test(email || ""))
+    throw new Error("Please enter a valid email address.");
+  return request("/newsletter", {
+    method: "POST",
+    body: JSON.stringify({ email: email.trim() }),
+  });
 }

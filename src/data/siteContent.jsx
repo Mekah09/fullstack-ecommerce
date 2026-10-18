@@ -5,18 +5,18 @@ export const SITE_INFO = {
   },
   help: {
     title: "A little help, whenever you need it.",
-    text: "Questions about a product? You can find maker details on every product page. Nook is currently a frontend demo; customer support and seller messaging will be connected with the backend.",
+    text: "Questions about a product? Check its listing for available details and seller information. Contact the store or seller for assistance with an order.",
   },
   shipping: {
     title: "Room for a change of heart.",
-    text: "Our demo storefront offers free shipping on orders of $100 or more, and $8 standard shipping on smaller orders. The store concept includes a 30-day return window. Real delivery, returns, and payment policies will be provided by the connected marketplace.",
+    text: "Check with the store for delivery areas, shipping fees, delivery times, and the return policy before placing an order. Final order prices and delivery fees are confirmed by the store.",
   },
   privacy: {
     title: "Your privacy matters.",
-    text: "This frontend demo stores your cart, favorites, demo account, and orders locally in your browser. Passwords are never stored. No real payment information is collected. Clear your browser’s site data to remove demo records.",
+    text: "Your browser stores product IDs for your bag and saved finds. Account access is kept for your current browser session. When the store is connected, account and order information is sent to its backend. Contact the store for its full privacy policy.",
   },
   terms: {
     title: "A note about this Nook.",
-    text: "Nook is a demonstration marketplace frontend. Products, reviews, shop activity, and checkout are sample data. No real transactions are processed. Buyer, seller, and administrator authorization must be enforced by the backend when connected.",
+    text: "Product availability, prices, and order acceptance are determined by the store. Review the listing and final order details before purchasing. Contact the store for its full terms and payment policies.",
   },
 };

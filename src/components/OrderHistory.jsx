@@ -5,11 +5,11 @@ import {
   FiShoppingBag,
 } from "react-icons/fi";
 import { Link } from "react-router-dom";
-import { useShop } from "../hooks/useShop.jsx";
+import withShop from "./withShop.jsx";
 import { money } from "../utils/format.jsx";
 
-export default function OrderHistory() {
-  const { orders, ordersLoading, ordersError, isDemo } = useShop();
+function OrderHistory({ shop }) {
+  const { orders, ordersLoading, ordersError } = shop;
   return (
     <section className="buyer-orders">
       <h2>
@@ -38,7 +38,7 @@ export default function OrderHistory() {
             </div>
             <span className="order-status">
               <FiCheckCircle />
-              {isDemo ? "Demo order placed" : order.status || "Received"}
+              {order.status || "Received"}
             </span>
             <strong>{money(order.total)}</strong>
           </article>
@@ -56,3 +56,5 @@ export default function OrderHistory() {
     </section>
   );
 }
+
+export default withShop(OrderHistory);

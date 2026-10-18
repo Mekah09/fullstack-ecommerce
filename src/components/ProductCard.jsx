@@ -1,9 +1,9 @@
 import { FiHeart, FiPlus, FiStar } from "react-icons/fi";
-import { useShop } from "../hooks/useShop.jsx";
+import withShop from "./withShop.jsx";
 import { money } from "../utils/format.jsx";
 
-export default function ProductCard({ product, index = 0 }) {
-  const { viewProduct, addToCart, toggleFavorite, favorites } = useShop();
+function ProductCard({ product, index = 0, shop }) {
+  const { viewProduct, addToCart, toggleFavorite, favorites } = shop;
   const favorite = favorites.includes(product.id);
   return (
     <article
@@ -45,11 +45,15 @@ export default function ProductCard({ product, index = 0 }) {
       </div>
       <div className="product-meta flex items-center justify-between">
         <span>{product.category}</span>
-        <span className="product-rating">
-          <FiStar />
-          {Number(product.rating || 0).toFixed(1)}{" "}
-          <small>({product.reviews || 0})</small>
-        </span>
+        {Number.isFinite(product.rating) && (
+          <span className="product-rating">
+            <FiStar />
+            {product.rating.toFixed(1)}{" "}
+            {Number.isFinite(product.reviews) && (
+              <small>({product.reviews})</small>
+            )}
+          </span>
+        )}
       </div>
       <div className="product-title-row flex items-start justify-between">
         <button onClick={() => viewProduct(product)}>{product.name}</button>
@@ -64,3 +68,5 @@ export default function ProductCard({ product, index = 0 }) {
     </article>
   );
 }
+
+export default withShop(ProductCard);

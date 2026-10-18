@@ -1,6 +1,10 @@
 import { FiX } from "react-icons/fi";
 
-export default function OverlayClose({ onClose, label = "Close dialog", className = "" }) {
+export default function OverlayClose({
+  onClose,
+  label = "Close dialog",
+  className = "",
+}) {
   return (
     <button
       type="button"

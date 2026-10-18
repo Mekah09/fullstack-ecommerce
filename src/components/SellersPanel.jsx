@@ -1,15 +1,32 @@
 import { FiCheck, FiCheckCircle } from "react-icons/fi";
 
-export default function SellersPanel({ sellers, full = false, onApprove }) {
+export default function SellersPanel({
+  sellers = [],
+  products = [],
+  full = false,
+  onApprove,
+  approvingId = null,
+  error = "",
+  loading = false,
+}) {
   return (
     <section className="dash-panel">
       <div className="dash-panel-title">
         <div>
           <h2>{full ? "Our seller community" : "Seller applications"}</h2>
-          <p>Independent makers. A shared point of view.</p>
+          <p>Manage seller applications returned by your backend.</p>
         </div>
-        <span className="dash-demo-label">Demo data</span>
       </div>
+      {error && (
+        <p className="dash-form-error" role="alert">
+          {error}
+        </p>
+      )}
+      {loading && (
+        <div className="dash-empty" role="status">
+          <p>Loading seller applications…</p>
+        </div>
+      )}
       <div className="dash-table-scroll">
         <table className="dash-table">
           <thead>
@@ -21,45 +38,72 @@ export default function SellersPanel({ sellers, full = false, onApprove }) {
             </tr>
           </thead>
           <tbody>
-            {sellers.map((seller) => (
-              <tr key={seller.id}>
-                <td>
-                  <div className="dash-seller-cell">
-                    <span className={`dash-avatar dash-avatar-${seller.color}`}>
-                      {seller.initials}
-                    </span>
-                    <div>
-                      <strong>{seller.name}</strong>
-                      <small>{seller.category}</small>
+            {sellers.map((seller) => {
+              const status = String(seller.status || "pending").toLowerCase();
+              const name =
+                seller.shopName || seller.name || seller.email || "Seller";
+              const productCount = Array.isArray(seller.products)
+                ? seller.products.length
+                : Number(
+                    seller.productCount ??
+                      seller.products ??
+                      products.filter(
+                        (product) =>
+                          String(product.sellerId) === String(seller.id),
+                      ).length,
+                  ) || 0;
+              return (
+                <tr key={seller.id}>
+                  <td>
+                    <div className="dash-seller-cell">
+                      <span className="dash-avatar dash-avatar-sage">
+                        {name
+                          .split(" ")
+                          .map((word) => word[0])
+                          .slice(0, 2)
+                          .join("")}
+                      </span>
+                      <div>
+                        <strong>{name}</strong>
+                        <small>{seller.category || seller.email || ""}</small>
+                      </div>
                     </div>
-                  </div>
-                </td>
-                <td>{seller.products}</td>
-                <td>
-                  <span
-                    className={`dash-status ${seller.status === "Approved" ? "dash-status-delivered" : "dash-status-processing"}`}
-                  >
-                    {seller.status}
-                  </span>
-                </td>
-                <td>
-                  {seller.status === "Pending" ? (
-                    <button
-                      className="dash-approve"
-                      onClick={() => onApprove(seller.id)}
+                  </td>
+                  <td>{productCount}</td>
+                  <td>
+                    <span
+                      className={`dash-status ${status === "approved" ? "dash-status-delivered" : "dash-status-processing"}`}
                     >
-                      <FiCheck /> Approve
-                    </button>
-                  ) : (
-                    <span className="dash-approved">
-                      <FiCheckCircle /> Reviewed
+                      {status.charAt(0).toUpperCase() + status.slice(1)}
                     </span>
-                  )}
-                </td>
-              </tr>
-            ))}
+                  </td>
+                  <td>
+                    {status === "pending" ? (
+                      <button
+                        className="dash-approve"
+                        disabled={approvingId !== null}
+                        onClick={() => onApprove(seller.id)}
+                      >
+                        <FiCheck />{" "}
+                        {approvingId === seller.id ? "Approving…" : "Approve"}
+                      </button>
+                    ) : (
+                      <span className="dash-approved">
+                        <FiCheckCircle /> Reviewed
+                      </span>
+                    )}
+                  </td>
+                </tr>
+              );
+            })}
           </tbody>
         </table>
+        {!loading && !error && sellers.length === 0 && (
+          <div className="dash-empty">
+            <h3>No seller applications yet</h3>
+            <p>Your API seller applications will appear here when available.</p>
+          </div>
+        )}
       </div>
     </section>
   );

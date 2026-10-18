@@ -3,12 +3,14 @@ import RevenueChart from "./RevenueChart.jsx";
 
 export default function OverviewInsights({
   admin,
+  orders = [],
+  loading = false,
   onViewSellers,
   onAddProduct,
 }) {
   return (
     <div className="dash-overview-grid">
-      <RevenueChart admin={admin} />
+      <RevenueChart admin={admin} orders={orders} loading={loading} />
       <section className="dash-panel dash-insight">
         <span className="dash-insight-icon">
           <FiTrendingUp />

@@ -31,14 +31,18 @@ export default function ShopSettings({
         </label>
         <label>
           Contact email
-          <input readOnly value={user?.email || "seller@nook.example"} />
+          <input
+            readOnly
+            value={user?.email || ""}
+            placeholder="No contact email provided"
+          />
         </label>
         <p className="dash-settings-note">
-          Shop settings are a frontend preview. Connect your backend to save
-          changes to your account.
+          The shop name applies to this browser session. Account settings will
+          need a profile endpoint to save changes to your account.
         </p>
         <button type="submit" className="dash-primary">
-          Save shop details
+          Apply for this session
           <FiCheck />
         </button>
       </form>

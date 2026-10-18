@@ -1,5 +1,5 @@
 import { FiX } from "react-icons/fi";
-import useOverlay from "../hooks/useOverlay.jsx";
+import DialogPanel from "./DialogPanel.jsx";
 
 export default function Modal({
   children,
@@ -12,7 +12,6 @@ export default function Modal({
   const close = () => {
     if (!busy) onClose();
   };
-  const panelRef = useOverlay(close);
   return (
     <div
       className="nook-modal-backdrop"
@@ -20,16 +19,15 @@ export default function Modal({
         if (event.target === event.currentTarget) close();
       }}
     >
-      <section
-        ref={panelRef}
+      <DialogPanel
         className={className}
-        role="dialog"
-        aria-modal="true"
-        aria-labelledby={titleId}
-        tabIndex={-1}
+        titleId={titleId}
+        onClose={close}
+        busy={busy}
       >
         <button
           className="modal-close"
+          type="button"
           onClick={close}
           aria-label={closeLabel}
           disabled={busy}
@@ -37,7 +35,7 @@ export default function Modal({
           <FiX />
         </button>
         {children}
-      </section>
+      </DialogPanel>
     </div>
   );
 }

@@ -1,41 +1,45 @@
-import { useId, useState } from "react";
+import { Component } from "react";
 import { FiCheckCircle, FiPackage, FiStar, FiTruck } from "react-icons/fi";
-import useOverlay from "../hooks/useOverlay.jsx";
+import DialogPanel from "./DialogPanel.jsx";
 import { money } from "../utils/format.jsx";
 import OverlayClose from "./OverlayClose.jsx";
 import ProductOptions from "./ProductOptions.jsx";
 import { colorLabel } from "./productVariants.jsx";
 import "./commerce-overlays.css";
 
-export default function ProductDetails({
-  product,
-  onClose,
-  onAddToCart,
-  onToggleWishlist,
-  isWishlisted = false,
-}) {
-  const panelRef = useOverlay(onClose);
-  const titleId = useId();
-  const [quantity, setQuantity] = useState(1);
-  const [added, setAdded] = useState(false);
-  const [error, setError] = useState("");
-  const stock = typeof product.stock === "number" ? product.stock : 99;
-  const name = product.name || product.title;
-  const rating = Number.isFinite(Number(product.rating))
-    ? Math.max(0, Math.min(5, Number(product.rating)))
-    : 4.8;
-  const colors = product.colors || [];
-  const [selectedColor, setSelectedColor] = useState(
-    colors[0]?.name || colors[0] || "",
-  );
+let nextProductId = 0;
 
-  async function addToBag() {
-    setError("");
+export default class ProductDetails extends Component {
+  constructor(props) {
+    super(props);
+    this.titleId = `product-title-${++nextProductId}`;
+    const colors = props.product.colors || [];
+    this.state = {
+      quantity: 1,
+      added: false,
+      error: "",
+      selectedColor: colors[0]?.name || colors[0] || "",
+    };
+  }
+
+  componentDidMount() {
+    this.mounted = true;
+  }
+
+  componentWillUnmount() {
+    this.mounted = false;
+  }
+
+  addToBag = async () => {
+    this.setState({ error: "", added: false });
+    const { product, onAddToCart } = this.props;
+    const { quantity, selectedColor } = this.state;
+    const colors = product.colors || [];
     try {
       const selectedIndex = colors.findIndex(
         (color) => (color.name || color) === selectedColor,
       );
-      await onAddToCart(
+      const result = await onAddToCart(
         selectedIndex >= 0
           ? {
               ...product,
@@ -45,110 +49,147 @@ export default function ProductDetails({
           : product,
         quantity,
       );
-      setAdded(true);
+      if (result === false) {
+        throw new Error("The requested quantity exceeds the available stock.");
+      }
+      if (this.mounted) this.setState({ added: true });
     } catch (err) {
-      setError(err?.message || "We couldn’t add this item. Please try again.");
+      if (this.mounted) {
+        this.setState({
+          error: err?.message || "We couldn’t add this item. Please try again.",
+        });
+      }
     }
-  }
+  };
 
-  return (
-    <div
-      className="overlay-backdrop"
-      onMouseDown={(event) => {
-        if (event.target === event.currentTarget) onClose();
-      }}
-    >
-      <section
-        className="detail-dialog"
-        role="dialog"
-        aria-modal="true"
-        aria-labelledby={titleId}
-        ref={panelRef}
-        tabIndex={-1}
+  changeQuantity = (value) => {
+    this.setState(({ quantity }) => ({
+      quantity: typeof value === "function" ? value(quantity) : value,
+      added: false,
+    }));
+  };
+
+  render() {
+    const {
+      product,
+      onClose,
+      onToggleWishlist,
+      isWishlisted = false,
+    } = this.props;
+    const { quantity, added, error, selectedColor } = this.state;
+    const { titleId } = this;
+    const stock = typeof product.stock === "number" ? product.stock : 99;
+    const name = product.name || product.title;
+    const hasRating =
+      product.rating !== undefined &&
+      product.rating !== null &&
+      product.rating !== "" &&
+      Number.isFinite(Number(product.rating));
+    const rating = Number.isFinite(Number(product.rating))
+      ? Math.max(0, Math.min(5, Number(product.rating)))
+      : 0;
+    const reviewCount = product.reviews ?? product.reviewCount;
+    const colors = product.colors || [];
+
+    return (
+      <div
+        className="overlay-backdrop"
+        onMouseDown={(event) => {
+          if (event.target === event.currentTarget) onClose();
+        }}
       >
-        <OverlayClose onClose={onClose} />
-        <div className="detail-image">
-          <img src={product.image} alt={name} />
-          {product.badge && (
-            <span className="detail-badge">{product.badge}</span>
-          )}
-          <span className="detail-image-note">Made for the everyday.</span>
-        </div>
-        <div className="detail-content">
-          <span className="overlay-eyebrow">{product.category}</span>
-          <h2 id={titleId}>{name}</h2>
-          <div className="detail-rating">
-            <span aria-label={`${rating} out of 5 stars`}>
-              {[1, 2, 3, 4, 5].map((star) => (
-                <FiStar
-                  key={star}
-                  className={
-                    star <= Math.round(rating) ? "detail-star-filled" : ""
-                  }
-                />
-              ))}
-            </span>
-            <strong>{rating.toFixed(1)}</strong>
-            <span className="detail-review-count">
-              ({product.reviews || product.reviewCount || 0} reviews)
-            </span>
-          </div>
-          <div className="detail-price">
-            {money(product.price)}
-            {product.originalPrice > product.price && (
-              <del>{money(product.originalPrice)}</del>
+        <DialogPanel
+          className="detail-dialog"
+          titleId={titleId}
+          onClose={onClose}
+        >
+          <OverlayClose onClose={onClose} />
+          <div className="detail-image">
+            {product.image ? (
+              <img src={product.image} alt={name} />
+            ) : (
+              <span>Product image unavailable</span>
             )}
+            {product.badge && (
+              <span className="detail-badge">{product.badge}</span>
+            )}
+            <span className="detail-image-note">Made for the everyday.</span>
           </div>
-          <p className="detail-description">
-            {product.description ||
-              "A thoughtful addition to your everyday. Beautifully considered, easy to love, and ready for a place in your home."}
-          </p>
-          <ProductOptions
-            colors={colors}
-            selectedColor={selectedColor}
-            onSelectColor={(color) => {
-              setSelectedColor(color);
-              setAdded(false);
-            }}
-            stock={stock}
-            quantity={quantity}
-            onChangeQuantity={(value) => {
-              setQuantity(value);
-              setAdded(false);
-            }}
-            added={added}
-            onAddToBag={addToBag}
-            isWishlisted={isWishlisted}
-            onToggleWishlist={() => onToggleWishlist(product.id)}
-          />
-          {added && (
-            <p className="detail-added" role="status">
-              <FiCheckCircle /> A good choice. Added to your bag.
-            </p>
-          )}
-          {error && (
-            <p className="overlay-error" role="alert">
-              {error}
-            </p>
-          )}
-          <div className="detail-perks">
-            <div>
-              <FiTruck />
-              <span>
-                <strong>A little something on us</strong>Free shipping on orders
-                $100+
-              </span>
+          <div className="detail-content">
+            <span className="overlay-eyebrow">{product.category}</span>
+            <h2 id={titleId}>{name}</h2>
+            {hasRating && (
+              <div className="detail-rating">
+                <span aria-label={`${rating} out of 5 stars`}>
+                  {[1, 2, 3, 4, 5].map((star) => (
+                    <FiStar
+                      key={star}
+                      className={
+                        star <= Math.round(rating) ? "detail-star-filled" : ""
+                      }
+                    />
+                  ))}
+                </span>
+                <strong>{rating.toFixed(1)}</strong>
+                {reviewCount !== undefined && reviewCount !== null && (
+                  <span className="detail-review-count">
+                    ({reviewCount} reviews)
+                  </span>
+                )}
+              </div>
+            )}
+            <div className="detail-price">
+              {money(product.price)}
+              {product.originalPrice > product.price && (
+                <del>{money(product.originalPrice)}</del>
+              )}
             </div>
-            <div>
-              <FiPackage />
-              <span>
-                <strong>Find your perfect fit</strong>Explore more thoughtful
-                everyday essentials
-              </span>
+            <p className="detail-description">
+              {product.description || "No description has been provided."}
+            </p>
+            <ProductOptions
+              colors={colors}
+              selectedColor={selectedColor}
+              onSelectColor={(color) => {
+                this.setState({ selectedColor: color, added: false });
+              }}
+              stock={stock}
+              quantity={quantity}
+              onChangeQuantity={this.changeQuantity}
+              added={added}
+              onAddToBag={this.addToBag}
+              isWishlisted={isWishlisted}
+              onToggleWishlist={() => onToggleWishlist(product.id)}
+            />
+            {added && (
+              <p className="detail-added" role="status">
+                <FiCheckCircle /> A good choice. Added to your bag.
+              </p>
+            )}
+            {error && (
+              <p className="overlay-error" role="alert">
+                {error}
+              </p>
+            )}
+            <div className="detail-perks">
+              <div>
+                <FiTruck />
+                <span>
+                  <strong>Delivery information</strong>Delivery details are
+                  confirmed by the store.
+                </span>
+              </div>
+              <div>
+                <FiPackage />
+                <span>
+                  <strong>Find your perfect fit</strong>Explore more thoughtful
+                  everyday essentials
+                </span>
+              </div>
             </div>
           </div>
-        </div>
-      </section>
-    </div>
-  );
+        </DialogPanel>
+      </div>
+    );
+  }
 }

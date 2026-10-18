@@ -1,6 +1,6 @@
 # Nook marketplace frontend
 
-A responsive ecommerce frontend built with React, Tailwind CSS, React Icons, React Router, and Vite. It runs independently of a backend with demo accounts, products, and checkout. No real payment or email subscription is created in demo mode.
+A responsive ecommerce frontend built with React, Tailwind CSS, React Icons, React Router, and Vite. Products, authentication, inventory changes, orders, and seller approvals use your backend. The frontend contains no static product catalog or demo accounts.
 
 ## Run locally
 
@@ -17,66 +17,58 @@ For a cloud workspace:
 npm run dev -- --host 0.0.0.0 --port 5173 --strictPort
 ```
 
-## Pages
-
-| URL         | Page                                                                  |
-| ----------- | --------------------------------------------------------------------- |
-| `/`         | Home: hero, four featured products, maker story, newsletter           |
-| `/products` | Full collection with search, categories, sorting, and saved finds     |
-| `/account`  | Buyer order history and saved products; guest orders also appear here |
-| `/seller`   | Seller dashboard and inventory management                             |
-| `/admin`    | Admin dashboard and marketplace previews                              |
-
-Search and filters are stored in the products URL, for example `/products?category=Furniture`, `/products?q=vase`, or `/products?saved=true`. Links support browser back/forward navigation and direct reloads. Product details and the shopping bag remain reusable overlays available from any page.
-
-Register a buyer or seller demo identity using a sample password of at least eight characters. Passwords are never saved or verified in demo mode. **Explore admin demo** in the account dialog opens the admin workspace. Sellers can create, edit, and delete their own products, using an image URL or an existing `/images/...` path. Cart, favorites, demo inventory, identities, and orders persist in this browser.
-
-Dashboard charts, sample order tables, seller approvals, and shop settings are frontend previews. The newsletter is also a preview. Real authentication, authorization, payments, and live dashboard data need the backend.
-
-## Where the code lives
-
-`src/App.jsx` only defines the routes. Each page composes smaller components; shared shopping state lives in focused hooks rather than page files.
-
-```text
-src/
-  App.jsx                  # Router and page definitions
-  main.jsx                 # Application entry point
-  components/              # Component files directly in this folder; no subfolders
-    SiteHeader.jsx
-    SiteFooter.jsx
-    Hero.jsx
-    FeaturedProducts.jsx
-    ProductCard.jsx
-    ProductGrid.jsx
-    ProductFilters.jsx
-    AuthModal.jsx
-    CartDrawer.jsx
-    CheckoutModal.jsx
-    Dashboard.jsx
-    InventoryPanel.jsx
-    ShopProvider.jsx
-    ...                    # Other component/helper JSX files and their CSS files
-  pages/                   # Separate home, catalog, buyer, seller, admin, and 404 pages
-  context/ShopContext.jsx   # Shared context declaration
-  hooks/                   # Auth, catalog, cart, orders, storage, scroll reveal (.jsx)
-  services/api.jsx         # Backend adapter and local demo implementation
-  data/                    # Demo products and site content (.jsx)
-  utils/                   # Currency formatting and browser storage (.jsx)
-  styles/                  # Shared and page-specific stylesheets
-public/images/             # Local photography and source attribution
-```
-
-All reusable component files live directly in `src/components`, with no nested component folders. Application JavaScript modules use the `.jsx` extension, including hooks, services, data, and helpers. Tool configuration files keep their standard `.js` filenames. Component stylesheets are also directly in `src/components`. `App.css`, `dashboard.css`, and `commerce-overlays.css` are import manifests.
-
 ## Connect your API
 
-Copy `.env.example` to an ignored `.env.local`, then set the public backend base URL:
+Copy `.env.example` to an ignored `.env.local` and set your public backend base URL:
 
 ```dotenv
 VITE_API_BASE_URL=https://your-api.example.com/api
 ```
 
-Restart Vite after changing it. Leave it empty for demo mode. `VITE_*` values are visible to the browser; never put secrets there. See [API.md](./API.md) for endpoints, data shapes, CORS, and backend authorization requirements.
+Restart Vite after changing it. For a deployed build, set this value before running `npm run build`. The catalog requests `GET /products` and expects **an array of product objects**. Until the URL is supplied, the storefront shows a connection message and no products; it does not request a placeholder API or substitute products. Empty arrays and failed API requests have separate empty/error states. See [API.md](./API.md) for the endpoint contract.
+
+`VITE_*` values are visible to the browser. Do not put API secrets in them. Authentication uses a bearer token returned by your backend and kept in session storage.
+
+## Pages
+
+| URL         | Page                                                               |
+| ----------- | ------------------------------------------------------------------ |
+| `/`         | Home with up to four featured products from the API                |
+| `/products` | Full API catalog with search, categories, sorting, and saved finds |
+| `/account`  | Authenticated buyer's order history and saved products             |
+| `/seller`   | Seller dashboard and inventory management                          |
+| `/admin`    | Admin dashboard and seller approvals                               |
+
+Search and filters are stored in the products URL, for example `/products?q=vase` or `/products?saved=true`. Categories come from the fetched products. Product details and the shopping bag are reusable overlays available across pages. Buyer and seller registration require the backend; the backend determines the role at login. There is no admin signup or demo login.
+
+The bag and favorites retain product IDs in browser storage. Product details, prices, and stock come from the current API catalog when those IDs are restored. Orders are never created or saved as local demo records. Dashboard counts and charts use the available API data, with empty states when there is none.
+
+## Where the code lives
+
+```text
+src/
+  App.jsx                  # Routes and application composition
+  main.jsx                 # Application entry point
+  components/              # All reusable components directly here; no subfolders
+    ShopProvider.jsx       # Shared marketplace state in a React class
+    withShop.jsx           # Context.Consumer wrapper
+    SiteHeader.jsx
+    FeaturedProducts.jsx
+    ProductCard.jsx
+    AuthModal.jsx
+    CartDrawer.jsx
+    Dashboard.jsx
+    ...
+  pages/                   # Separate home, products, buyer, seller, admin pages
+  context/ShopContext.jsx   # Shared context declaration
+  services/api.jsx         # Backend requests and response validation
+  data/siteContent.jsx     # Informational page copy; no product records
+  utils/                   # Formatting and browser storage helpers
+  styles/                  # Shared and page styles
+public/images/             # Decorative home imagery and source attribution
+```
+
+All reusable component files live directly in `src/components`. React class components use lifecycle methods for state, fetching, dialogs, and scroll animations. Stateless components receive props or use `Context.Consumer`; application code uses no React hooks or router hooks. Application JavaScript source modules use `.jsx`; build-tool configuration keeps its standard `.js` filenames. CSS remains in stylesheets.
 
 ## Check and build
 
@@ -86,6 +78,6 @@ npm run build
 npm run preview
 ```
 
-The production build is written to `dist/`. When hosting it, configure your server to return `index.html` for frontend routes such as `/products` and `/seller`; this is required for direct links and page reloads with BrowserRouter. API requests should still go to your backend URL.
+The production build is written to `dist/`. Configure your host to return `index.html` for frontend routes such as `/products` and `/seller` so direct links and reloads work. API requests go to the configured backend URL.
 
-There is no test runner configured. Browser checks cover the four-product home page, full catalog, URL filters and navigation, buyer checkout and persistence, seller inventory CRUD, admin demo, keyboard dialogs, and mobile layouts.
+There is no test runner configured. Live integration with your backend requires its URL and the endpoint responses described in [API.md](./API.md). The frontend does not collect payment-card information or implement a payment provider.

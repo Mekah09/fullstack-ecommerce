@@ -1,22 +1,30 @@
-import { useNavigate } from "react-router-dom";
 import Dashboard from "./Dashboard.jsx";
-import { useShop } from "../hooks/useShop.jsx";
+import withShop from "./withShop.jsx";
 
-export default function WorkspacePage({ role }) {
-  const shop = useShop();
-  const navigate = useNavigate();
+function WorkspacePage({ role, shop }) {
   return (
     <main id="main-content">
       <Dashboard
         role={role}
         user={shop.user}
         products={shop.products}
+        productsLoading={shop.loading}
+        productsError={shop.loadError}
+        orders={shop.orders}
+        ordersLoading={shop.ordersLoading}
+        ordersError={shop.ordersError}
+        sellers={shop.sellers}
+        sellersLoading={shop.sellersLoading}
+        sellersError={shop.sellersError}
+        onApproveSeller={shop.approveSeller}
         onAddProduct={shop.addProduct}
         onUpdateProduct={shop.updateProduct}
         onDeleteProduct={shop.deleteProduct}
         onToast={shop.notify}
-        onBackToShop={() => navigate("/")}
+        onBackToShop={() => shop.navigate("/")}
       />
     </main>
   );
 }
+
+export default withShop(WorkspacePage);

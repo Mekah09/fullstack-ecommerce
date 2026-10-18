@@ -1,11 +1,10 @@
 import { FiArrowRight } from "react-icons/fi";
 import { Link } from "react-router-dom";
-import { useShop } from "../hooks/useShop.jsx";
+import withShop from "../components/withShop.jsx";
 import OrderHistory from "../components/OrderHistory.jsx";
 import SavedFinds from "../components/SavedFinds.jsx";
 
-export default function BuyerAccountPage() {
-  const { user } = useShop();
+function BuyerAccountPage({ shop: { user } }) {
   return (
     <main id="main-content" className="buyer-page page-width">
       <div className="section-heading">
@@ -23,3 +22,5 @@ export default function BuyerAccountPage() {
     </main>
   );
 }
+
+export default withShop(BuyerAccountPage);

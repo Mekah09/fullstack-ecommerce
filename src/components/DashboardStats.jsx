@@ -1,59 +1,69 @@
 import {
-  FiArrowUpRight,
   FiDollarSign,
   FiPackage,
   FiShoppingCart,
   FiUsers,
 } from "react-icons/fi";
+import { countsTowardRevenue, currency } from "./dashboardData.jsx";
 
 export default function DashboardStats({
   admin,
-  productCount,
-  stockCount,
-  sellers,
+  products = [],
+  orders = [],
+  sellers = [],
+  productsLoading = false,
+  ordersLoading = false,
+  sellersLoading = false,
 }) {
+  const revenue = orders
+    .filter(countsTowardRevenue)
+    .reduce((sum, order) => sum + (Number(order.total) || 0), 0);
+  const stock = products.reduce(
+    (sum, product) => sum + (Number(product.stock) || 0),
+    0,
+  );
+  const approved = sellers.filter(
+    (seller) => String(seller.status).toLowerCase() === "approved",
+  ).length;
+  const pending = sellers.filter(
+    (seller) => String(seller.status).toLowerCase() === "pending",
+  ).length;
+  const stats = [
+    {
+      label: admin ? "Total revenue" : "Total sales",
+      value: ordersLoading ? "—" : currency(revenue),
+      icon: FiDollarSign,
+      note: "From loaded orders",
+    },
+    {
+      label: "Orders",
+      value: ordersLoading ? "—" : orders.length,
+      icon: FiShoppingCart,
+      note: "Orders returned by your API",
+    },
+    {
+      label: admin ? "Marketplace products" : "Active products",
+      value: productsLoading ? "—" : products.length,
+      icon: FiPackage,
+      note: "Products in your catalog",
+    },
+    admin
+      ? {
+          label: "Active sellers",
+          value: sellersLoading ? "—" : approved,
+          icon: FiUsers,
+          note: `${pending} pending applications`,
+        }
+      : {
+          label: "Units in stock",
+          value: productsLoading ? "—" : stock,
+          icon: FiPackage,
+          note: "Across your product inventory",
+        },
+  ];
   return (
     <div className="dash-stats">
-      {[
-        {
-          label: admin ? "Total revenue" : "Total sales",
-          value: admin ? "$42,856" : "$8,240",
-          icon: FiDollarSign,
-          change: "+18.6%",
-          note: "vs. last month",
-          demo: true,
-        },
-        {
-          label: "Orders",
-          value: admin ? "384" : "128",
-          icon: FiShoppingCart,
-          change: "+12.8%",
-          note: "vs. last month",
-          demo: true,
-        },
-        {
-          label: admin ? "Marketplace products" : "Active products",
-          value: productCount.toString().padStart(2, "0"),
-          icon: FiPackage,
-          change: `${stockCount}`,
-          note: "units in your catalog",
-        },
-        {
-          label: admin ? "Active sellers" : "Shop visitors",
-          value: admin
-            ? sellers
-                .filter((seller) => seller.status === "Approved")
-                .length.toString()
-                .padStart(2, "0")
-            : "2,486",
-          icon: FiUsers,
-          change: admin
-            ? `${sellers.filter((seller) => seller.status === "Pending").length} pending`
-            : "+24.2%",
-          note: admin ? "applications" : "vs. last month",
-          demo: true,
-        },
-      ].map(({ label, value, icon: Icon, change, note, demo }) => (
+      {stats.map(({ label, value, icon: Icon, note }) => (
         <section className="dash-stat" key={label}>
           <div>
             <span>{label}</span>
@@ -62,14 +72,7 @@ export default function DashboardStats({
             </span>
           </div>
           <strong>{value}</strong>
-          <p>
-            <span>
-              {!change.includes("pending") && <FiArrowUpRight />}
-              {change}
-            </span>{" "}
-            {note}
-            {demo && <small>Demo</small>}
-          </p>
+          <p>{note}</p>
         </section>
       ))}
     </div>

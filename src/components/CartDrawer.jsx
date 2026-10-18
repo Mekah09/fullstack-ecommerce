@@ -1,216 +1,211 @@
-import { useId, useState } from "react";
+import { Component } from "react";
 import {
   FiArrowRight,
   FiMinus,
   FiPlus,
   FiShoppingBag,
   FiTrash2,
-  FiTruck,
 } from "react-icons/fi";
-import useOverlay from "../hooks/useOverlay.jsx";
+import DialogPanel from "./DialogPanel.jsx";
 import { money } from "../utils/format.jsx";
 import OverlayClose from "./OverlayClose.jsx";
 import "./commerce-overlays.css";
 
-export function CartDrawer({
-  items = [],
-  onClose,
-  onUpdateQuantity,
-  onRemove,
-  onCheckout,
-  checkoutBusy = false,
-}) {
-  const panelRef = useOverlay(onClose);
-  const titleId = useId();
-  const subtotal = items.reduce(
-    (sum, item) => sum + Number(item.price) * item.quantity,
-    0,
-  );
-  const shipping = subtotal >= 100 || !items.length ? 0 : 8;
-  const count = items.reduce((sum, item) => sum + item.quantity, 0);
-  const remaining = Math.max(100 - subtotal, 0);
-  const [error, setError] = useState("");
+let nextCartId = 0;
 
-  async function handleCheckout() {
-    setError("");
-    try {
-      await onCheckout();
-    } catch (err) {
-      setError(
-        err?.message || "Checkout couldn’t be opened. Please try again.",
-      );
-    }
+export class CartDrawer extends Component {
+  titleId = `cart-title-${++nextCartId}`;
+
+  state = { error: "" };
+
+  componentDidMount() {
+    this.mounted = true;
   }
 
-  return (
-    <div
-      className="overlay-backdrop overlay-drawer-backdrop"
-      onMouseDown={(event) => {
-        if (event.target === event.currentTarget) onClose();
-      }}
-    >
-      <section
-        className="cart-drawer"
-        role="dialog"
-        aria-modal="true"
-        aria-labelledby={titleId}
-        ref={panelRef}
-        tabIndex={-1}
+  componentWillUnmount() {
+    this.mounted = false;
+  }
+
+  close = () => {
+    if (!this.props.checkoutBusy) this.props.onClose();
+  };
+
+  handleCheckout = async () => {
+    if (this.props.checkoutBusy) return;
+    this.setState({ error: "" });
+    try {
+      await this.props.onCheckout();
+    } catch (err) {
+      if (this.mounted) {
+        this.setState({
+          error:
+            err?.message || "Checkout couldn’t be opened. Please try again.",
+        });
+      }
+    }
+  };
+
+  render() {
+    const {
+      items = [],
+      onUpdateQuantity,
+      onRemove,
+      checkoutBusy = false,
+    } = this.props;
+    const { titleId } = this;
+    const { error } = this.state;
+    const subtotal = items.reduce(
+      (sum, item) => sum + Number(item.price) * item.quantity,
+      0,
+    );
+    const count = items.reduce((sum, item) => sum + item.quantity, 0);
+
+    return (
+      <div
+        className="overlay-backdrop overlay-drawer-backdrop"
+        onMouseDown={(event) => {
+          if (event.target === event.currentTarget) this.close();
+        }}
       >
-        <header className="cart-header">
-          <div>
-            <span className="overlay-eyebrow">GOOD FINDS, ALL YOURS</span>
-            <h2 id={titleId}>
-              Your bag <span>{count}</span>
-            </h2>
-          </div>
-          <OverlayClose onClose={onClose} label="Close shopping bag" />
-        </header>
-        {items.length ? (
-          <>
-            <div className="cart-shipping">
-              <p>
-                <FiTruck />
-                {remaining > 0 ? (
-                  <span>
-                    You’re <strong>{money(remaining)}</strong> away from free
-                    shipping.
-                  </span>
-                ) : (
-                  <span>
-                    A little perk: <strong>your shipping is on us.</strong>
-                  </span>
-                )}
-              </p>
-              <div className="cart-progress">
-                <span
-                  style={{ width: `${Math.min((subtotal / 100) * 100, 100)}%` }}
-                />
-              </div>
+        <DialogPanel
+          className="cart-drawer"
+          titleId={titleId}
+          onClose={this.close}
+          busy={checkoutBusy}
+        >
+          <header className="cart-header">
+            <div>
+              <span className="overlay-eyebrow">GOOD FINDS, ALL YOURS</span>
+              <h2 id={titleId}>
+                Your bag <span>{count}</span>
+              </h2>
             </div>
-            <div className="cart-items">
-              {items.map((item) => {
-                const cartId = item.cartId || item.id;
-                return (
-                  <article className="cart-item" key={cartId}>
-                    <img src={item.image} alt={item.name || item.title} />
-                    <div className="cart-item-details">
-                      <span className="cart-category">
-                        {item.category}
-                        {item.selectedFinish ? ` · ${item.selectedFinish}` : ""}
-                      </span>
-                      <h3>{item.name || item.title}</h3>
-                      <p className="cart-item-price">{money(item.price)}</p>
-                      <div className="cart-item-controls">
-                        <div className="overlay-quantity">
+            <OverlayClose onClose={this.close} label="Close shopping bag" />
+          </header>
+          {items.length ? (
+            <>
+              <div className="cart-items">
+                {items.map((item) => {
+                  const cartId = item.cartId || item.id;
+                  return (
+                    <article className="cart-item" key={cartId}>
+                      <img src={item.image} alt={item.name || item.title} />
+                      <div className="cart-item-details">
+                        <span className="cart-category">
+                          {item.category}
+                          {item.selectedFinish
+                            ? ` · ${item.selectedFinish}`
+                            : ""}
+                        </span>
+                        <h3>{item.name || item.title}</h3>
+                        <p className="cart-item-price">{money(item.price)}</p>
+                        <div className="cart-item-controls">
+                          <div className="overlay-quantity">
+                            <button
+                              type="button"
+                              aria-label={`Decrease quantity of ${item.name || item.title}`}
+                              onClick={() =>
+                                onUpdateQuantity(cartId, item.quantity - 1)
+                              }
+                              disabled={item.quantity <= 1}
+                            >
+                              <FiMinus />
+                            </button>
+                            <span aria-label={`Quantity ${item.quantity}`}>
+                              {item.quantity}
+                            </span>
+                            <button
+                              type="button"
+                              aria-label={`Increase quantity of ${item.name || item.title}`}
+                              onClick={() =>
+                                onUpdateQuantity(cartId, item.quantity + 1)
+                              }
+                              disabled={
+                                item.quantity >=
+                                (typeof item.stock === "number"
+                                  ? item.stock
+                                  : 99)
+                              }
+                            >
+                              <FiPlus />
+                            </button>
+                          </div>
                           <button
                             type="button"
-                            aria-label={`Decrease quantity of ${item.name || item.title}`}
-                            onClick={() =>
-                              onUpdateQuantity(cartId, item.quantity - 1)
-                            }
-                            disabled={item.quantity <= 1}
+                            className="cart-remove"
+                            onClick={() => onRemove(cartId)}
+                            aria-label={`Remove ${item.name || item.title} from bag`}
                           >
-                            <FiMinus />
-                          </button>
-                          <span aria-label={`Quantity ${item.quantity}`}>
-                            {item.quantity}
-                          </span>
-                          <button
-                            type="button"
-                            aria-label={`Increase quantity of ${item.name || item.title}`}
-                            onClick={() =>
-                              onUpdateQuantity(cartId, item.quantity + 1)
-                            }
-                            disabled={
-                              item.quantity >=
-                              (typeof item.stock === "number" ? item.stock : 99)
-                            }
-                          >
-                            <FiPlus />
+                            <FiTrash2 />
                           </button>
                         </div>
-                        <button
-                          type="button"
-                          className="cart-remove"
-                          onClick={() => onRemove(cartId)}
-                          aria-label={`Remove ${item.name || item.title} from bag`}
-                        >
-                          <FiTrash2 />
-                        </button>
                       </div>
-                    </div>
-                    <strong className="cart-line-total">
-                      {money(item.price * item.quantity)}
-                    </strong>
-                  </article>
-                );
-              })}
-            </div>
-            <footer className="cart-footer">
-              <div className="cart-summary-line">
-                <span>Subtotal</span>
-                <span>{money(subtotal)}</span>
+                      <strong className="cart-line-total">
+                        {money(item.price * item.quantity)}
+                      </strong>
+                    </article>
+                  );
+                })}
               </div>
-              <div className="cart-summary-line">
-                <span>Shipping</span>
-                <span>
-                  {shipping ? (
-                    money(shipping)
-                  ) : (
-                    <span className="cart-free">On us</span>
-                  )}
-                </span>
-              </div>
-              <div className="cart-total">
-                <span>Total</span>
-                <span>
-                  {money(subtotal + shipping)} <small>USD</small>
-                </span>
-              </div>
-              <p className="cart-tax-note">
-                Any applicable taxes are calculated at checkout.
-              </p>
-              {error && (
-                <p className="overlay-error" role="alert">
-                  {error}
+              <footer className="cart-footer">
+                <div className="cart-summary-line">
+                  <span>Estimated subtotal</span>
+                  <span>{money(subtotal)}</span>
+                </div>
+                <div className="cart-summary-line">
+                  <span>Shipping</span>
+                  <span>Calculated by the store</span>
+                </div>
+                <p className="cart-tax-note">
+                  Any applicable taxes are calculated at checkout.
                 </p>
-              )}
+                {error && (
+                  <p className="overlay-error" role="alert">
+                    {error}
+                  </p>
+                )}
+                <button
+                  type="button"
+                  className="overlay-primary cart-checkout"
+                  onClick={this.handleCheckout}
+                  disabled={checkoutBusy}
+                >
+                  {checkoutBusy
+                    ? "Preparing checkout…"
+                    : "Continue to checkout"}
+                  <FiArrowRight />
+                </button>
+                <button
+                  type="button"
+                  className="cart-keep-shopping"
+                  onClick={this.close}
+                >
+                  A little more browsing
+                </button>
+              </footer>
+            </>
+          ) : (
+            <div className="cart-empty">
+              <span className="cart-empty-icon">
+                <FiShoppingBag />
+              </span>
+              <span className="overlay-eyebrow">ROOM FOR SOMETHING GOOD</span>
+              <h3>Your bag’s feeling a little empty.</h3>
+              <p>
+                Thoughtful things for your everyday are just around the corner.
+              </p>
               <button
                 type="button"
-                className="overlay-primary cart-checkout"
-                onClick={handleCheckout}
-                disabled={checkoutBusy}
+                className="overlay-primary"
+                onClick={this.close}
               >
-                {checkoutBusy ? "Preparing checkout…" : "Continue to checkout"}
+                Find your next favorite
                 <FiArrowRight />
               </button>
-              <button
-                type="button"
-                className="cart-keep-shopping"
-                onClick={onClose}
-              >
-                A little more browsing
-              </button>
-            </footer>
-          </>
-        ) : (
-          <div className="cart-empty">
-            <span className="cart-empty-icon">
-              <FiShoppingBag />
-            </span>
-            <span className="overlay-eyebrow">ROOM FOR SOMETHING GOOD</span>
-            <h3>Your bag’s feeling a little empty.</h3>
-            <p>
-              Thoughtful things for your everyday are just around the corner.
-            </p>
-            <button type="button" className="overlay-primary" onClick={onClose}>
-              Find your next favorite
-              <FiArrowRight />
-            </button>
-          </div>
-        )}
-      </section>
-    </div>
-  );
+            </div>
+          )}
+        </DialogPanel>
+      </div>
+    );
+  }
 }

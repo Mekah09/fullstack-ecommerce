@@ -29,9 +29,9 @@ export default function Hero() {
           </div>
           <div>
             <div className="hero-stars">
-              ★★★★★ <b>4.9/5</b>
+              ✦ <b>Nook</b>
             </div>
-            <span>Loved by 2,000+ happy homes</span>
+            <span>Thoughtful finds for everyday living</span>
           </div>
         </div>
       </div>

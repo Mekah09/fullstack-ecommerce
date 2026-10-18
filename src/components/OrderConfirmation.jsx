@@ -1,12 +1,9 @@
 import { FiArrowRight, FiCheck } from "react-icons/fi";
-import { useNavigate } from "react-router-dom";
-import { useShop } from "../hooks/useShop.jsx";
+import withShop from "./withShop.jsx";
 import { money } from "../utils/format.jsx";
 import Modal from "./Modal.jsx";
 
-export default function OrderConfirmation() {
-  const { isDemo, lastOrder, closeOverlay } = useShop();
-  const navigate = useNavigate();
+function OrderConfirmation({ shop: { lastOrder, closeOverlay, navigate } }) {
   return (
     <Modal
       className="info-modal success-modal"
@@ -19,14 +16,14 @@ export default function OrderConfirmation() {
       </span>
       <span className="eyebrow">A LITTLE HAPPY MAIL</span>
       <h2 id="success-title">Good things are coming.</h2>
-      <p>
-        {isDemo
-          ? "Your demo order is placed. No payment was taken."
-          : "Your order has been received."}
-      </p>
+      <p>Your order has been received.</p>
       <div className="success-order">
-        ORDER #{String(lastOrder?.id).slice(-8).toUpperCase()}
-        <b>{money(lastOrder?.total || 0)}</b>
+        {lastOrder?.id &&
+          `ORDER #${String(lastOrder.id).slice(-8).toUpperCase()}`}
+        {lastOrder?.total != null &&
+          Number.isFinite(Number(lastOrder.total)) && (
+            <b>{money(Number(lastOrder.total))}</b>
+          )}
       </div>
       <button
         className="primary-button"
@@ -40,3 +37,5 @@ export default function OrderConfirmation() {
     </Modal>
   );
 }
+
+export default withShop(OrderConfirmation);
