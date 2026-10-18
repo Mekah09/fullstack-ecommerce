@@ -2,6 +2,11 @@ export const API_BASE_URL = (import.meta.env?.VITE_API_BASE_URL || "")
   .trim()
   .replace(/\/+$/, "");
 export const API_CONFIGURED = Boolean(API_BASE_URL);
+export const PRODUCTS_API_URL =
+  (import.meta.env?.VITE_PRODUCTS_API_URL || "").trim() ||
+  (API_BASE_URL
+    ? `${API_BASE_URL}/products`
+    : "https://fullstack-ecommerce2.onrender.com/products");
 
 const sessionKeys = { user: "nook.user.v1", token: "nook.token.v1" };
 const sessionMemory = new Map();
@@ -31,13 +36,17 @@ function writeSession(key, value) {
 async function request(path, options = {}) {
   if (!API_CONFIGURED) {
     throw new Error(
-      "The store is not connected yet. Add VITE_API_BASE_URL to connect your backend.",
+      "This action needs your account and order API. Set VITE_API_BASE_URL to connect it.",
     );
   }
-  const token = readSession(sessionKeys.token);
+  return requestUrl(`${API_BASE_URL}${path}`, options, true);
+}
+
+async function requestUrl(url, options = {}, authenticated = false) {
+  const token = authenticated ? readSession(sessionKeys.token) : null;
   let response;
   try {
-    response = await fetch(`${API_BASE_URL}${path}`, {
+    response = await fetch(url, {
       ...options,
       headers: {
         Accept: "application/json",
@@ -110,7 +119,18 @@ function nonnegativeNumber(value, field, optional = false) {
   return number;
 }
 
-function normalizeProduct(product) {
+function productImage(value, sourceUrl) {
+  if (typeof value !== "string" || !value.trim()) return "";
+  try {
+    const base = new URL(sourceUrl, window.location.origin);
+    const url = new URL(value.trim(), base);
+    return ["http:", "https:"].includes(url.protocol) ? url.href : "";
+  } catch {
+    return "";
+  }
+}
+
+function normalizeProduct(product, sourceUrl = PRODUCTS_API_URL) {
   if (!product || typeof product !== "object" || Array.isArray(product)) {
     throw new Error("The API returned an invalid product.");
   }
@@ -135,6 +155,10 @@ function normalizeProduct(product) {
     name: name.trim(),
     category: typeof category === "string" ? category : "",
     seller: typeof seller === "string" ? seller : "",
+    image: productImage(product.image, sourceUrl),
+    description:
+      typeof product.description === "string" ? product.description : "",
+    badge: typeof product.badge === "string" ? product.badge : "",
     price: nonnegativeNumber(product.price, "price"),
     stock,
     colors: Array.isArray(product.colors)
@@ -232,13 +256,13 @@ function orderPayload(input) {
 }
 
 export async function getProducts() {
-  const products = await request("/products");
+  const products = await requestUrl(PRODUCTS_API_URL);
   if (!Array.isArray(products)) {
     throw new Error(
       "The products API must return an array of product objects.",
     );
   }
-  const normalized = products.map(normalizeProduct);
+  const normalized = products.map((product) => normalizeProduct(product));
   if (
     new Set(normalized.map((product) => product.id)).size !== normalized.length
   ) {
@@ -256,6 +280,7 @@ export async function createProduct(input) {
       }),
       "product",
     ),
+    `${API_BASE_URL}/products`,
   );
 }
 
@@ -268,6 +293,7 @@ export async function updateProduct(id, updates) {
       }),
       "product",
     ),
+    `${API_BASE_URL}/products/${encodeURIComponent(id)}`,
   );
 }
 

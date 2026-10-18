@@ -19,15 +19,18 @@ npm run dev -- --host 0.0.0.0 --port 5173 --strictPort
 
 ## Connect your API
 
-Copy `.env.example` to an ignored `.env.local` and set your public backend base URL:
+The storefront loads products from `https://fullstack-ecommerce2.onrender.com/products` by default. No environment file is needed for that catalog. It expects **an array of product objects**; no local products are substituted when the API is empty or unavailable.
+
+To override the feed or connect the remaining backend routes, copy `.env.example` to an ignored `.env.local`:
 
 ```dotenv
-VITE_API_BASE_URL=https://your-api.example.com/api
+VITE_PRODUCTS_API_URL=https://fullstack-ecommerce2.onrender.com/products
+VITE_API_BASE_URL=
 ```
 
-Restart Vite after changing it. For a deployed build, set this value before running `npm run build`. The catalog requests `GET /products` and expects **an array of product objects**. Until the URL is supplied, the storefront shows a connection message and no products; it does not request a placeholder API or substitute products. Empty arrays and failed API requests have separate empty/error states. See [API.md](./API.md) for the endpoint contract.
+`VITE_PRODUCTS_API_URL` is a complete public GET URL. `VITE_API_BASE_URL` is the base for accounts, orders, seller changes, and admin actions; leave it empty until those routes are available. If only a base is set, products use its `/products` route. An explicit products URL takes precedence. Restart Vite after changes, or set these values before running `npm run build` for deployment. Empty arrays and failed requests have separate empty/error states. See [API.md](./API.md) for the endpoint contract.
 
-`VITE_*` values are visible to the browser. Do not put API secrets in them. Authentication uses a bearer token returned by your backend and kept in session storage.
+`VITE_*` values are visible to the browser. Do not put API secrets in them. Authentication uses a bearer token returned by your backend and kept in session storage. The public catalog request does not include that token.
 
 ## Pages
 
@@ -80,4 +83,4 @@ npm run preview
 
 The production build is written to `dist/`. Configure your host to return `index.html` for frontend routes such as `/products` and `/seller` so direct links and reloads work. API requests go to the configured backend URL.
 
-There is no test runner configured. Live integration with your backend requires its URL and the endpoint responses described in [API.md](./API.md). The frontend does not collect payment-card information or implement a payment provider.
+There is no test runner configured. Account, order, and seller integrations still require their confirmed routes and responses described in [API.md](./API.md). The frontend does not collect payment-card information or implement a payment provider.

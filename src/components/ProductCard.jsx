@@ -1,5 +1,6 @@
 import { FiHeart, FiPlus, FiStar } from "react-icons/fi";
 import withShop from "./withShop.jsx";
+import ProductImage from "./ProductImage.jsx";
 import { money } from "../utils/format.jsx";
 
 function ProductCard({ product, index = 0, shop }) {
@@ -17,7 +18,7 @@ function ProductCard({ product, index = 0, shop }) {
           onClick={() => viewProduct(product)}
           aria-label={`View ${product.name}`}
         >
-          <img src={product.image} alt={product.name} loading="lazy" />
+          <ProductImage src={product.image} alt={product.name} loading="lazy" />
         </button>
         {product.badge && (
           <span
@@ -59,12 +60,14 @@ function ProductCard({ product, index = 0, shop }) {
         <button onClick={() => viewProduct(product)}>{product.name}</button>
         <span>{money(product.price)}</span>
       </div>
-      <div className="product-subline flex items-center justify-between">
-        <span>By {product.seller}</span>
-        {product.originalPrice > product.price && (
-          <del>{money(product.originalPrice)}</del>
-        )}
-      </div>
+      {(product.seller || product.originalPrice > product.price) && (
+        <div className="product-subline flex items-center justify-between">
+          {product.seller && <span>By {product.seller}</span>}
+          {product.originalPrice > product.price && (
+            <del>{money(product.originalPrice)}</del>
+          )}
+        </div>
+      )}
     </article>
   );
 }

@@ -94,7 +94,8 @@
   border-bottom: 1px solid #e8eade;
   position: relative;
 }
-.cart-item > img {
+.cart-item > img,
+.cart-item > .product-image-placeholder {
   width: 90px;
   height: 108px;
   object-fit: cover;

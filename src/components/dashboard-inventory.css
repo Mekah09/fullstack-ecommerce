@@ -64,7 +64,8 @@
   align-items: center;
   gap: 12px;
 }
-.dash-product-cell img {
+.dash-product-cell img,
+.dash-product-cell .product-image-placeholder {
   width: 43px;
   height: 47px;
   object-fit: cover;

@@ -29,6 +29,17 @@
   background: transparent;
   overflow: hidden;
 }
+.product-image-placeholder {
+  display: grid;
+  width: 100%;
+  height: 100%;
+  place-items: center;
+  color: #929b87;
+}
+.product-image-placeholder > svg {
+  width: 24px;
+  height: 24px;
+}
 .product-image-button img {
   width: 100%;
   height: 100%;

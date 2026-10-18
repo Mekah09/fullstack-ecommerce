@@ -1,14 +1,14 @@
 # Connecting your backend
 
-Products come exclusively from your API. The confirmed catalog response is an **array of objects**. No URL has been supplied yet; without one the storefront shows a connection message and no products. It never falls back to a local catalog, demo accounts, orders, sellers, or dashboard records.
+Products come exclusively from `https://fullstack-ecommerce2.onrender.com/products`, the default public catalog endpoint. The confirmed catalog response is an **array of objects**. Empty arrays and network errors have separate visible states. The frontend never falls back to a local catalog, demo accounts, orders, sellers, or dashboard records.
 
-Set `VITE_API_BASE_URL=https://your-api.example.com/api` in an ignored `.env.local`, then restart Vite. `GET /products` will request `https://your-api.example.com/api/products`. The value is public browser configuration; do not put secrets in it. The API must allow the frontend origin and its `Authorization`/`Content-Type` headers through CORS. Use HTTPS in production.
+Set `VITE_PRODUCTS_API_URL` in an ignored `.env.local` to override the complete catalog URL. Set `VITE_API_BASE_URL` separately when the account, order, seller, and admin APIs are available. If a base is configured without an explicit products URL, the catalog uses `${VITE_API_BASE_URL}/products`. Restart Vite after configuration changes; deployment values must be set before building. These are public browser settings, not secrets. The catalog request sends no bearer token. The API must allow the frontend origin through CORS, and authenticated routes must also allow `Authorization`/`Content-Type` headers. Use HTTPS in production.
 
 The adapter lives in `src/services/api.jsx`. Components use class lifecycle methods and context consumers; there are no hooks. All API-dependent actions report errors until the relevant backend is available.
 
 ## Prepared endpoints
 
-Only the catalog's array shape is confirmed. The remaining paths below are prepared integration contracts; adjust the adapter when your backend's routes and responses are available.
+The catalog URL and array shape are confirmed. Its individual field names still need to be checked against a live response. The remaining paths below are prepared integration contracts; adjust the adapter when your backend's routes and responses are available. They use `VITE_API_BASE_URL` and remain disconnected until it is configured.
 
 | Method | Path                 | Request / response                                                                                                 |
 | ------ | -------------------- | ------------------------------------------------------------------------------------------------------------------ |
@@ -37,7 +37,7 @@ Return `id` (or `_id`), `name`, `category`, `price`, `stock`, `image`, `descript
 - `stock` must be a nonnegative integer. Missing stock is treated as zero so an unknown quantity cannot be added to the bag.
 - `category` may be a string or `{ name }`. Category filters are derived from API records.
 - `seller` may be a display string or an object with `name` and `id`/`_id`. Return the owner's user ID as `sellerId` so the seller dashboard can filter inventory reliably.
-- `image` is a public image URL or a site-local image path. The frontend has no bundled product photographs or fallback product records.
+- `image` is a public HTTP(S) image URL or a path relative to the products endpoint. For example, `/uploads/photo.jpg` resolves to the API origin. Missing or failed images show a neutral placeholder icon. The frontend has no bundled product photographs or fallback product records.
 - `colors` is an optional string array. Prices display in USD. Ratings and review counts are displayed only when supplied by the API.
 
 ## Accounts and orders
@@ -52,4 +52,4 @@ Sellers use `{ id, name, email, status, joined? }`, with `_id` accepted; `status
 
 Cart entries and favorites store product IDs, quantities, and selected colors locally. Restored products are resolved against the current API catalog; product records are not read from legacy browser caches. Orders and seller approvals are never persisted as local demo records. Informational homepage photography is decorative and is not a catalog item.
 
-The backend must authenticate requests, enforce seller ownership and administrator permissions, validate inputs, scope order access, and calculate final prices. Frontend role checks are navigation conveniences and do not authorize requests. Live validation of these integrations remains pending your API URL and final endpoint contract.
+The backend must authenticate requests, enforce seller ownership and administrator permissions, validate inputs, scope order access, and calculate final prices. Frontend role checks are navigation conveniences and do not authorize requests. Live validation of the account, order, seller, and admin integrations remains pending their final endpoint contracts.

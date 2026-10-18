@@ -4,6 +4,7 @@ import DialogPanel from "./DialogPanel.jsx";
 import { money } from "../utils/format.jsx";
 import OverlayClose from "./OverlayClose.jsx";
 import ProductOptions from "./ProductOptions.jsx";
+import ProductImage from "./ProductImage.jsx";
 import { colorLabel } from "./productVariants.jsx";
 import "./commerce-overlays.css";
 
@@ -105,11 +106,7 @@ export default class ProductDetails extends Component {
         >
           <OverlayClose onClose={onClose} />
           <div className="detail-image">
-            {product.image ? (
-              <img src={product.image} alt={name} />
-            ) : (
-              <span>Product image unavailable</span>
-            )}
+            <ProductImage src={product.image} alt={name} />
             {product.badge && (
               <span className="detail-badge">{product.badge}</span>
             )}

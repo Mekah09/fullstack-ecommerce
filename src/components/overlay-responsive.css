@@ -97,7 +97,8 @@
   .cart-item {
     gap: 13px;
   }
-  .cart-item > img {
+  .cart-item > img,
+  .cart-item > .product-image-placeholder {
     width: 78px;
     height: 100px;
   }

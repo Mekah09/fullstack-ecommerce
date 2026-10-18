@@ -1,5 +1,6 @@
 import { FiEdit2, FiTrash2 } from "react-icons/fi";
 import { currency } from "./dashboardData.jsx";
+import ProductImage from "./ProductImage.jsx";
 
 export default function ProductTable({ products, onEdit, onDelete }) {
   return (
@@ -20,7 +21,7 @@ export default function ProductTable({ products, onEdit, onDelete }) {
           <tr key={product.id}>
             <td>
               <div className="dash-product-cell">
-                <img src={product.image} alt="" />
+                <ProductImage src={product.image} alt="" />
                 <div>
                   <strong>{product.name}</strong>
                   <small>{product.seller}</small>

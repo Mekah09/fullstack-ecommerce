@@ -9,6 +9,7 @@ import {
 import DialogPanel from "./DialogPanel.jsx";
 import { money } from "../utils/format.jsx";
 import OverlayClose from "./OverlayClose.jsx";
+import ProductImage from "./ProductImage.jsx";
 import "./commerce-overlays.css";
 
 let nextCartId = 0;
@@ -89,7 +90,10 @@ export class CartDrawer extends Component {
                   const cartId = item.cartId || item.id;
                   return (
                     <article className="cart-item" key={cartId}>
-                      <img src={item.image} alt={item.name || item.title} />
+                      <ProductImage
+                        src={item.image}
+                        alt={item.name || item.title}
+                      />
                       <div className="cart-item-details">
                         <span className="cart-category">
                           {item.category}
