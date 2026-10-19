@@ -12,6 +12,15 @@ const PRODUCTS_REQUEST_URL =
   import.meta.env?.DEV || PRODUCTS_API_URL === DEFAULT_PRODUCTS_API_URL
     ? "/catalog-api/products"
     : PRODUCTS_API_URL;
+const DEFAULT_ADD_PRODUCT_API_URL =
+  "https://fullstack-ecommerce2.onrender.com/addProduct";
+export const ADD_PRODUCT_API_URL =
+  (import.meta.env?.VITE_ADD_PRODUCT_API_URL || "").trim() ||
+  DEFAULT_ADD_PRODUCT_API_URL;
+const ADD_PRODUCT_REQUEST_URL =
+  import.meta.env?.DEV || ADD_PRODUCT_API_URL === DEFAULT_ADD_PRODUCT_API_URL
+    ? "/catalog-api/add-product"
+    : ADD_PRODUCT_API_URL;
 
 const sessionKeys = { user: "nook.user.v1", token: "nook.token.v1" };
 const sessionMemory = new Map();
@@ -49,13 +58,16 @@ async function request(path, options = {}) {
 
 async function requestUrl(url, options = {}, authenticated = false) {
   const token = authenticated ? readSession(sessionKeys.token) : null;
+  const multipart = options.body instanceof FormData;
   let response;
   try {
     response = await fetch(url, {
       ...options,
       headers: {
         Accept: "application/json",
-        ...(options.body ? { "Content-Type": "application/json" } : {}),
+        ...(options.body && !multipart
+          ? { "Content-Type": "application/json" }
+          : {}),
         ...(token ? { Authorization: `Bearer ${token}` } : {}),
         ...options.headers,
       },
@@ -181,7 +193,8 @@ function normalizeProduct(product, sourceUrl = PRODUCTS_API_URL) {
 }
 
 function publicUser(user) {
-  if (!user || !["buyer", "seller", "admin"].includes(user.role)) {
+  const role = user?.role === "user" ? "buyer" : user?.role;
+  if (!user || !["buyer", "seller", "admin"].includes(role)) {
     throw new Error(
       "The server returned an invalid account. Please sign in again.",
     );
@@ -190,7 +203,7 @@ function publicUser(user) {
     id: identifier(user.id ?? user._id, "user"),
     name: typeof user.name === "string" ? user.name : "",
     email: typeof user.email === "string" ? user.email : "",
-    role: user.role,
+    role,
   };
 }
 
@@ -211,11 +224,15 @@ function saveAuth(payload) {
   return user;
 }
 
-function validateCredentials({ email, password }) {
+function validateCredentials({ email, password }, minimumLength = 6) {
   if (!/^\S+@\S+\.\S+$/.test(email || ""))
     throw new Error("Please enter a valid email address.");
-  if (!password || password.length < 6)
-    throw new Error("Please use a password with at least 6 characters.");
+  if (!password || password.length < minimumLength)
+    throw new Error(
+      minimumLength === 1
+        ? "Please enter your password."
+        : `Please use a password with at least ${minimumLength} characters.`,
+    );
 }
 
 function normalizeOrder(order) {
@@ -278,15 +295,33 @@ export async function getProducts() {
 }
 
 export async function createProduct(input) {
+  const name = input.name?.trim();
+  const category = input.category?.trim();
+  const price = Number(input.price);
+  if (!name || !category || !Number.isFinite(price) || price <= 0) {
+    throw new Error("Enter a product name, category, and price greater than zero.");
+  }
+  const image = input.image;
+  if (!(image instanceof File) || image.size === 0)
+    throw new Error("Choose a product image file to upload.");
+  if (!["image/jpeg", "image/png", "image/webp"].includes(image.type))
+    throw new Error("Choose a JPG, PNG, or WebP product image.");
+  if (image.size > 2 * 1024 * 1024)
+    throw new Error("Choose an image no larger than 2 MB.");
+  const body = new FormData();
+  body.append("productName", name);
+  body.append("productPrice", String(price));
+  body.append("productCategory", category);
+  body.append("productImage", image);
   return normalizeProduct(
     extract(
-      await request("/products", {
+      await requestUrl(ADD_PRODUCT_REQUEST_URL, {
         method: "POST",
-        body: JSON.stringify(input),
+        body,
       }),
       "product",
     ),
-    `${API_BASE_URL}/products`,
+    ADD_PRODUCT_API_URL,
   );
 }
 
@@ -309,13 +344,15 @@ export async function deleteProduct(id) {
 }
 
 export async function signIn({ email, password }) {
-  validateCredentials({ email, password });
-  return saveAuth(
-    await request("/auth/login", {
-      method: "POST",
-      body: JSON.stringify({ email: email.trim(), password }),
-    }),
-  );
+  validateCredentials({ email, password }, 1);
+  const payload = await requestUrl("/account-api/signin", {
+    method: "POST",
+    body: JSON.stringify({ email: email.trim(), password }),
+  });
+  const user = saveAuth(payload);
+  const account = { ...user, email: user.email || email.trim() };
+  writeSession(sessionKeys.user, account);
+  return account;
 }
 
 export async function signUp({ name, email, password, role = "buyer" }) {
@@ -337,10 +374,21 @@ export async function signUp({ name, email, password, role = "buyer" }) {
 }
 
 export async function getCurrentUser() {
-  if (!readSession(sessionKeys.token)) return null;
-  const user = publicUser(extract(await request("/auth/me"), "user"));
-  writeSession(sessionKeys.user, user);
-  return user;
+  const token = readSession(sessionKeys.token);
+  if (!token) return null;
+  // The backend has no /me route. Restore its last sign-in response for
+  // navigation only; the server must authorize every protected API action.
+  try {
+    const encoded = token.split(".")[1].replace(/-/g, "+").replace(/_/g, "/");
+    const claims = JSON.parse(atob(encoded));
+    if (!Number.isFinite(claims.exp) || claims.exp * 1000 <= Date.now())
+      throw new Error("Session expired");
+    return publicUser(readSession(sessionKeys.user));
+  } catch {
+    writeSession(sessionKeys.token, null);
+    writeSession(sessionKeys.user, null);
+    return null;
+  }
 }
 
 export async function signOut() {

@@ -12,74 +12,103 @@ export default class ProductForm extends Component {
         description: product?.description || "",
         price: product?.price ?? "",
         category: product?.category || "",
-        stock: product?.stock ?? 0,
+        stock: product?.stock ?? "",
         image: product?.image || "",
       },
+      imageFile: null,
       saving: false,
       error: "",
     };
   }
 
+  componentDidMount() {
+    this.mounted = true;
+  }
+
+  componentWillUnmount() {
+    this.mounted = false;
+  }
+
   change = (event) => {
     const { name, value } = event.target;
-    this.setState((current) => ({ form: { ...current.form, [name]: value } }));
+    this.setState((current) => ({
+      form: { ...current.form, [name]: value },
+      error: "",
+    }));
+  };
+
+  changeImage = (event) => {
+    this.setState({
+      imageFile: event.target.files?.[0] || null,
+      error: "",
+    });
   };
 
   submit = async (event) => {
     event.preventDefault();
     if (this.state.saving) return;
     this.setState({ saving: true, error: "" });
-    const { form } = this.state;
+    const { form, imageFile } = this.state;
     const { product, sellerName, onSave, onClose } = this.props;
     try {
-      const image = form.image.trim();
-      let validImage = /^\/(?!\/)[^\s]*$/.test(image);
-      try {
-        validImage ||= ["https:", "http:"].includes(new URL(image).protocol);
-      } catch {
-        /* A local image path is supported above. */
-      }
-      if (!validImage)
-        throw new Error(
-          "Use a full http(s) image URL or a local path starting with /.",
-        );
-      if (
-        !form.name.trim() ||
-        !form.description.trim() ||
-        !form.category.trim()
-      ) {
-        throw new Error("Please enter a name, description, and category.");
-      }
+      if (!form.name.trim() || !form.category.trim())
+        throw new Error("Please enter a product name and category.");
       const price = Number(form.price);
-      const stock = Number(form.stock);
       if (!Number.isFinite(price) || price <= 0)
         throw new Error("Enter a price greater than zero.");
-      if (!Number.isInteger(stock) || stock < 0)
-        throw new Error("Enter a whole stock quantity of zero or more.");
-      await onSave({
-        ...form,
-        image,
+      const fields = {
         name: form.name.trim(),
-        description: form.description.trim(),
         category: form.category.trim(),
         price,
-        stock,
-        seller: product?.seller || sellerName || "",
-      });
-      onClose();
+      };
+      if (product) {
+        const image = form.image.trim();
+        if (image) {
+          let validImage = /^\/(?!\/)[^\s]*$/.test(image);
+          try {
+            validImage ||= ["https:", "http:"].includes(new URL(image).protocol);
+          } catch {
+            /* A local image path is supported above. */
+          }
+          if (!validImage)
+            throw new Error(
+              "Use a full http(s) image URL or a local path starting with /.",
+            );
+        }
+        fields.image = image;
+        fields.seller = product.seller || sellerName || "";
+        if (product.description) fields.description = form.description.trim();
+        if (product.stock != null) {
+          const stock = Number(form.stock);
+          if (form.stock === "" || !Number.isInteger(stock) || stock < 0)
+            throw new Error("Enter a whole stock quantity of zero or more.");
+          fields.stock = stock;
+        }
+      } else {
+        if (!imageFile || imageFile.size === 0)
+          throw new Error("Choose a product image file to upload.");
+        if (!["image/jpeg", "image/png", "image/webp"].includes(imageFile.type))
+          throw new Error("Choose a JPG, JPEG, PNG, or WebP image.");
+        if (imageFile.size > 2 * 1024 * 1024)
+          throw new Error("Choose an image that is 2 MB or smaller.");
+        fields.image = imageFile;
+      }
+      await onSave(fields);
+      if (this.mounted) onClose();
     } catch (issue) {
-      this.setState({
-        error:
-          issue.message || "We couldn’t save this product. Please try again.",
-      });
+      if (this.mounted)
+        this.setState({
+          error:
+            issue.message || "We couldn’t save this product. Please try again.",
+        });
     } finally {
-      this.setState({ saving: false });
+      if (this.mounted) this.setState({ saving: false });
     }
   };
 
   render() {
     const { product, categories = [], onClose } = this.props;
-    const { form, saving, error } = this.state;
+    const { form, imageFile, saving, error } = this.state;
     return (
       <DashboardDialog
         onClose={onClose}
@@ -109,30 +138,34 @@ export default class ProductForm extends Component {
               name="name"
               data-initial-focus
               required
+              disabled={saving}
               maxLength={120}
               placeholder="e.g. Everyday ceramic mug"
               value={form.name}
               onChange={this.change}
             />
           </label>
-          <label>
-            Description
-            <textarea
-              name="description"
-              required
-              rows={3}
-              placeholder="Tell buyers what makes it special…"
-              value={form.description}
-              onChange={this.change}
-            />
-          </label>
-          <div className="dash-form-row">
+          {product?.description && (
             <label>
-              Price (USD)
+              Description
+              <textarea
+                name="description"
+                disabled={saving}
+                rows={3}
+                placeholder="Tell buyers what makes it special…"
+                value={form.description}
+                onChange={this.change}
+              />
+            </label>
+          )}
+          <div className={product?.stock != null ? "dash-form-row" : ""}>
+            <label>
+              Price (₦ NGN)
               <input
                 name="price"
                 type="number"
                 required
+                disabled={saving}
                 min="0.01"
                 step="0.01"
                 placeholder="0.00"
@@ -140,24 +173,28 @@ export default class ProductForm extends Component {
                 onChange={this.change}
               />
             </label>
-            <label>
-              Stock available
-              <input
-                name="stock"
-                type="number"
-                required
-                min="0"
-                step="1"
-                value={form.stock}
-                onChange={this.change}
-              />
-            </label>
+            {product?.stock != null && (
+              <label>
+                Stock available
+                <input
+                  name="stock"
+                  type="number"
+                  required
+                  disabled={saving}
+                  min="0"
+                  step="1"
+                  value={form.stock}
+                  onChange={this.change}
+                />
+              </label>
+            )}
           </div>
           <label>
             Category
             <input
               name="category"
               required
+              disabled={saving}
               list="product-categories"
               placeholder="Enter a category"
               value={form.category}
@@ -169,21 +206,41 @@ export default class ProductForm extends Component {
               ))}
             </datalist>
           </label>
-          <label>
-            Product image URL or path
-            <input
-              name="image"
-              type="text"
-              required
-              placeholder="https://… or /images/product.jpg"
-              value={form.image}
-              onChange={this.change}
-            />
-            <span className="dash-field-help">
-              Use a public http(s) URL or a local image path, e.g.
-              /images/product.jpg.
-            </span>
-          </label>
+          {product ? (
+            <label>
+              Product image URL or path
+              <input
+                name="image"
+                type="text"
+                disabled={saving}
+                placeholder="https://… or /images/product.jpg"
+                value={form.image}
+                onChange={this.change}
+                aria-describedby="product-image-help"
+              />
+              <span id="product-image-help" className="dash-field-help">
+                Use a public http(s) URL or a local image path.
+              </span>
+            </label>
+          ) : (
+            <label>
+              Product image
+              <input
+                name="productImage"
+                type="file"
+                accept=".jpg,.jpeg,.png,.webp,image/jpeg,image/png,image/webp"
+                required
+                disabled={saving}
+                onChange={this.changeImage}
+                aria-describedby="product-image-help"
+              />
+              <span id="product-image-help" className="dash-field-help">
+                {imageFile
+                  ? `Selected: ${imageFile.name}. JPG, JPEG, PNG, or WebP; up to 2 MB.`
+                  : "Choose a JPG, JPEG, PNG, or WebP image from your device, up to 2 MB."}
+              </span>
+            </label>
+          )}
           {error && (
             <p className="dash-form-error" role="alert">
               {error}

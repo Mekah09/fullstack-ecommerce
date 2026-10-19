@@ -9,6 +9,10 @@ export default defineConfig(({ mode }) => {
     env.VITE_PRODUCTS_API_URL?.trim() ||
       'https://fullstack-ecommerce2.onrender.com/products',
   )
+  const addProductUrl = new URL(
+    env.VITE_ADD_PRODUCT_API_URL?.trim() ||
+      'https://fullstack-ecommerce2.onrender.com/addProduct',
+  )
 
   return {
     plugins: [react(), tailwindcss()],
@@ -18,6 +22,16 @@ export default defineConfig(({ mode }) => {
           target: productsUrl.origin,
           changeOrigin: true,
           rewrite: () => `${productsUrl.pathname}${productsUrl.search}`,
+        },
+        '/catalog-api/add-product': {
+          target: addProductUrl.origin,
+          changeOrigin: true,
+          rewrite: () => `${addProductUrl.pathname}${addProductUrl.search}`,
+        },
+        '/account-api/signin': {
+          target: 'https://fullstack-ecommerce2.onrender.com',
+          changeOrigin: true,
+          rewrite: () => '/user/signin',
         },
       },
     },

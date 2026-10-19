@@ -1,6 +1,14 @@
 {
   "rewrites": [
     {
+      "source": "/catalog-api/add-product",
+      "destination": "https://fullstack-ecommerce2.onrender.com/addProduct"
+    },
+    {
+      "source": "/account-api/signin",
+      "destination": "https://fullstack-ecommerce2.onrender.com/user/signin"
+    },
+    {
       "source": "/catalog-api/products",
       "destination": "https://fullstack-ecommerce2.onrender.com/products"
     },

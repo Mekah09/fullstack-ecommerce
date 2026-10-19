@@ -19,10 +19,13 @@ export default class ShopProvider extends Component {
   alive = false;
   accountVersion = 0;
   catalogVersion = 0;
+  catalogAdditionVersion = 0;
+  catalogAdditions = new Map();
   savedCartRecords = readStoredArray("nook_cart");
   savedFavoriteIds = readStoredArray("nook_favorites");
   state = {
     products: [],
+    createdProductIds: [],
     loading: true,
     loadError: "",
     user: null,

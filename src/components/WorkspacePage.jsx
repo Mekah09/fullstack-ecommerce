@@ -8,6 +8,7 @@ function WorkspacePage({ role, shop }) {
         role={role}
         user={shop.user}
         products={shop.products}
+        createdProductIds={shop.createdProductIds}
         productsLoading={shop.loading}
         productsError={shop.loadError}
         orders={shop.orders}

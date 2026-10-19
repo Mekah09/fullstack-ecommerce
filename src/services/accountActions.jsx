@@ -71,7 +71,14 @@ export async function authenticate(shop, data) {
     : api.signIn(data));
   if (!shop.alive || version !== shop.accountVersion) return;
   shop.setState(
-    { user, authLoading: false, overlay: null, orders: [], sellers: [] },
+    {
+      user,
+      authLoading: false,
+      overlay: null,
+      orders: [],
+      sellers: [],
+      createdProductIds: [],
+    },
     () => loadAccountData(shop, user),
   );
   shop.notify(`Welcome ${user.name?.split(" ")[0] || "to Nook"}!`);
@@ -91,6 +98,7 @@ export async function logout(shop) {
   if (!shop.alive) return;
   shop.setState({
     user: null,
+    createdProductIds: [],
     orders: [],
     sellers: [],
     ordersLoading: false,

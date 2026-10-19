@@ -79,6 +79,7 @@ export default class Dashboard extends Component {
       role = "seller",
       user,
       products = [],
+      createdProductIds = [],
       orders = [],
       sellers = [],
       sellersError = "",
@@ -98,7 +99,8 @@ export default class Dashboard extends Component {
             (product.sellerId != null &&
               user?.id != null &&
               String(product.sellerId) === String(user.id)) ||
-            (Boolean(user?.name) && product.seller === user.name),
+            (Boolean(user?.name) && product.seller === user.name) ||
+            createdProductIds.includes(product.id),
         );
     const filteredProducts = managedProducts.filter((product) =>
       `${product.name || ""} ${product.category || ""}`
