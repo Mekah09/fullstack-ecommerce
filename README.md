@@ -36,7 +36,7 @@ For a cloud preview, run `npm run dev -- --host 0.0.0.0 --port 5173 --strictPort
 | `/admin/add-product` | Admin product upload page |
 | `/404` and unknown paths | Page not found |
 
-Dashboard and upload links require the appropriate signed-in role. The admin URL is [https://nook-pearl-six.vercel.app/admin](https://nook-pearl-six.vercel.app/admin); use an account provisioned with the `admin` role by your backend. A products API URL is not an admin credential. There is no admin signup or demo login. The not-found screen is a client route; a host's SPA fallback may still return HTTP 200.
+Dashboard and upload links require the appropriate signed-in role. To access [the admin page](https://nook-pearl-six.vercel.app/admin), use a trusted backend/database operation to assign `role: "admin"` to an existing account with `verified: true` and `isActive: true`, then sign in normally. The frontend opens `/admin` from the role returned by sign-in. There is no public admin signup or demo login. A products API URL does not grant admin access. The not-found screen is a client route; a host's SPA fallback may still return HTTP 200.
 
 ## API connection
 
@@ -44,24 +44,43 @@ Products load from `https://fullstack-ecommerce2.onrender.com/products`. A raw a
 
 The current backend has no product owner ID. The seller view can include products created during the current signed-in session; reliable ownership filtering after reload requires backend owner fields. Cart and favorites retain product references; checkout availability and prices must be validated by the backend.
 
-## Email OTP configuration
+## Signup, email OTP, and sign-in
 
-Create an ignored `.env.local` using the settings below. Sign-in defaults to `/account-api/signin`, proxied by Vite and Vercel to the existing backend `/user/signin` route. Configure the final signup and OTP routes when your backend provides them:
+The supplied authentication routes are connected by default. Vite and Vercel proxy `/account-api/signup`, `/account-api/signin`, and `/account-api/verifyOTP` to the matching `/user/...` routes at `https://fullstack-ecommerce2.onrender.com`.
+
+1. Create an account as a buyer or seller. Signup submits the form to `/user/signup` and opens the email-code screen after a successful response.
+2. Enter the emailed code. `/user/verifyOTP` receives `{ email, otp }`; its successful message returns you to sign-in.
+3. Sign in with your email and password. `/user/signin` returns the token and account role used to open your buyer, seller, or admin page. OTP is required during signup, rather than every sign-in.
+
+The backend currently creates every signup with the `user` role, even when seller is selected. Seller registration requires the backend role fix below; the frontend uses the actual role returned by sign-in. No emails, codes, or accounts are simulated.
+
+These optional overrides can go in an ignored `.env.local`; the three supplied URLs are already the defaults:
 
 ```dotenv
+VITE_AUTH_SIGN_UP_URL=/account-api/signup
 VITE_AUTH_SIGN_IN_URL=/account-api/signin
-# Fill empty values with the final backend URLs when supplied.
-VITE_AUTH_SIGN_UP_URL=
-VITE_AUTH_VERIFY_OTP_URL=
+VITE_AUTH_VERIFY_OTP_URL=/account-api/verifyOTP
+# No resend route has been supplied.
 VITE_AUTH_RESEND_OTP_URL=
 VITE_ORDERS_API_URL=
 VITE_NEWSLETTER_API_URL=
 ```
 
-Buyer and seller credentials must start a real email OTP challenge. Only a successful verification response containing a token and user authenticates them. The existing backend's token-only sign-in response is insufficient for buyer/seller OTP login; update that backend flow and configure its verification URL. Existing backend-issued admin sessions may sign in directly. Resend is available only when its URL is configured. Unconfigured routes show an explanatory error; no emails or codes are simulated.
+Resend remains unavailable until its backend URL is provided. Verification can also accept a future backend response containing a token and user; a message alone never creates a local session.
 
 Restart Vite after changing environment variables, and set deployment values before building. `VITE_*` values are public browser configuration, not secret API keys. No API key is needed for the public catalog; private keys stay in the backend. Optional order and newsletter URLs remain disconnected until supplied. The frontend does not collect payment-card details or process payments.
 
 Session storage restores an unexpired backend-issued JWT and cached user for navigation. Backend authorization must enforce every protected action; local role checks do not verify token signatures, account status, or revocation. The backend's `user` role maps to `buyer`.
 
-The included `vercel.json` supplies the sign-in proxy and frontend route fallback. Other hosts need equivalent rules. Direct cross-origin API requests require the backend to allow the deployed frontend origin through CORS.
+The included `vercel.json` supplies all three authentication proxies and the frontend route fallback. Other hosts need equivalent rules. Direct cross-origin API requests require the backend to allow the deployed frontend origin through CORS.
+
+## Backend fixes required
+
+The frontend is wired to the supplied endpoints, but the reviewed backend needs these changes for reliable registration:
+
+- In `controller/auth.controller.js`, replace undefined `User.findOne` with `Auth.findOne` inside `verifyOTP`; the current reference causes verification to return HTTP 500.
+- Await account saving and email delivery before signup reports success, and return an error response from the signup/sign-in catch blocks.
+- Accept signup roles from an allowlist of `user` and `seller`; the frontend sends `user` for buyers and `seller` for sellers. Keep admin provisioning outside public signup.
+- Remove the public `/allusers` route registered before the protected duplicate. Keep `protect` and `allowRoles("admin")` on the admin route.
+
+See [API.md](./API.md) for request and response details. These fixes belong to the backend repository.

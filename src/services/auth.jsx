@@ -1,9 +1,9 @@
-// Authentication is the only shared API adapter. Connect these public URLs
-// when the final email/OTP routes and responses are available.
+// Authentication is the only shared API adapter. Vite and Vercel proxy these
+// defaults to https://fullstack-ecommerce2.onrender.com/user/... .
 const endpoints = {
   signin: (import.meta.env?.VITE_AUTH_SIGN_IN_URL || "/account-api/signin").trim(),
-  signup: (import.meta.env?.VITE_AUTH_SIGN_UP_URL || "").trim(),
-  verify: (import.meta.env?.VITE_AUTH_VERIFY_OTP_URL || "").trim(),
+  signup: (import.meta.env?.VITE_AUTH_SIGN_UP_URL || "/account-api/signup").trim(),
+  verify: (import.meta.env?.VITE_AUTH_VERIFY_OTP_URL || "/account-api/verifyOTP").trim(),
   resend: (import.meta.env?.VITE_AUTH_RESEND_OTP_URL || "").trim(),
 };
 
@@ -59,7 +59,7 @@ function sessionFrom(payload) {
   };
 }
 
-async function post(url, body, missingMessage) {
+async function post(url, body, missingMessage, allowText = false) {
   if (!url) throw new Error(missingMessage);
   let response;
   try {
@@ -72,15 +72,20 @@ async function post(url, body, missingMessage) {
     throw new Error("Unable to reach the authentication service. Please try again.");
   }
   const text = await response.text();
+  // Express res.send("message") uses text/html even for plain messages.
+  // Reject actual markup, while accepting those existing OTP responses.
+  if (/^\s*</.test(text)) {
+    throw new Error("The authentication URL returned a web page. Please check the API route and try again.");
+  }
   let payload;
   try {
     payload = text ? JSON.parse(text) : null;
   } catch {
-    if (response.ok) throw new Error("The authentication API returned an invalid JSON response.");
-    throw new Error(text || `Authentication failed (${response.status}).`);
+    if (response.ok && !allowText) throw new Error("The authentication API returned an invalid JSON response.");
+    payload = text;
   }
   if (!response.ok) {
-    const message = payload?.message ?? payload?.error?.message;
+    const message = typeof payload === "string" ? payload : payload?.message ?? payload?.error?.message;
     throw new Error(typeof message === "string" ? message : `Authentication failed (${response.status}). Please try again.`);
   }
   return payload;
@@ -97,9 +102,9 @@ export async function beginAuth({ mode, role, name, email, password }) {
   if (signup && !["buyer", "seller"].includes(role)) throw new Error("Choose a buyer or seller account.");
   const payload = await post(
     signup ? endpoints.signup : endpoints.signin,
-    { email: address, password, ...(signup ? { name: fullName, role } : {}) },
+    { email: address, password, ...(signup ? { name: fullName, role: role === "buyer" ? "user" : "seller" } : {}) },
     signup
-      ? "Account registration is awaiting its API route. Set VITE_AUTH_SIGN_UP_URL to connect it."
+      ? "Set VITE_AUTH_SIGN_UP_URL to connect registration."
       : "Set VITE_AUTH_SIGN_IN_URL to connect sign-in.",
   );
   const body = payload?.data ?? payload;
@@ -114,29 +119,34 @@ export async function beginAuth({ mode, role, name, email, password }) {
     challengeId: typeof challengeId === "string" ? challengeId : undefined,
     message: typeof body?.message === "string" ? body.message : "",
   };
-  if (requiresOtp) return challenge;
-  if (body?.token || body?.accessToken) {
-    const session = sessionFrom(payload);
-    // Existing backend-provisioned admins can use the current sign-in route.
-    // Buyers and sellers must complete the forthcoming OTP verification step.
-    if (!signup && session.user.role === "admin") return { session };
-    throw new Error("Email verification is required. The authentication API has not provided an OTP challenge.");
-  }
-  if (signup && typeof body?.message === "string") return challenge;
-  throw new Error("Email verification is required. The authentication API has not provided an OTP challenge.");
+  // Signup sends the email code; the current API returns only a message.
+  // Sign-in checks verification on the backend and returns the actual role.
+  if (signup && (requiresOtp || typeof body?.message === "string")) return challenge;
+  if (!signup && requiresOtp) return challenge;
+  if (!signup) return { session: sessionFrom(payload) };
+  throw new Error("The registration API did not confirm that your account was created.");
 }
 
 export async function verifyOtp({ email, otp, challengeId }) {
   const code = String(otp || "").trim();
-  if (!code) throw new Error("Enter the verification code from your email.");
+  if (!/^\d{6}$/.test(code)) throw new Error("Enter the six-digit verification code from your email.");
+  const address = String(email || "").trim();
+  if (!/^\S+@\S+\.\S+$/.test(address)) throw new Error("Enter a valid email address.");
   const payload = await post(
     endpoints.verify,
-    { email, otp: code, ...(challengeId ? { challengeId } : {}) },
-    "Email verification is awaiting its API route. Set VITE_AUTH_VERIFY_OTP_URL to connect it.",
+    { email: address, otp: code, ...(challengeId ? { challengeId } : {}) },
+    "Set VITE_AUTH_VERIFY_OTP_URL to connect email verification.",
+    true,
   );
-  // A success message alone cannot create a session. The selected UI role is
-  // never used to grant permissions; verification must return the server user.
-  return sessionFrom(payload);
+  const body = payload?.data ?? payload;
+  const message = typeof body === "string" ? body.trim() : body?.message;
+  if (body?.token || body?.accessToken) return { session: sessionFrom(payload), message };
+  if (typeof message !== "string" || !message.trim() || body?.success === false) {
+    throw new Error("The verification API did not confirm your email. Please try again.");
+  }
+  // Verification confirms the email, not a login. Request credentials again
+  // rather than retaining the signup password or inventing a session.
+  return { message: "Email verified. Sign in to continue." };
 }
 
 export async function resendOtp({ email, challengeId }) {

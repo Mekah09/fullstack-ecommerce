@@ -33,6 +33,16 @@ export default defineConfig(({ mode }) => {
           changeOrigin: true,
           rewrite: () => '/user/signin',
         },
+        '/account-api/signup': {
+          target: 'https://fullstack-ecommerce2.onrender.com',
+          changeOrigin: true,
+          rewrite: () => '/user/signup',
+        },
+        '/account-api/verifyOTP': {
+          target: 'https://fullstack-ecommerce2.onrender.com',
+          changeOrigin: true,
+          rewrite: () => '/user/verifyOTP',
+        },
       },
     },
   }

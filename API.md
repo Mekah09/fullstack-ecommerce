@@ -31,31 +31,46 @@ The current model has no owner ID. Newly uploaded product IDs can be associated 
 
 ## Credentials and email OTP
 
-Configure public endpoint URLs through these Vite variables:
+The supplied routes are connected through Vite and Vercel proxies. Public endpoint URLs can be overridden through these Vite variables:
 
 | Variable | Default / purpose |
 | -------- | ----------------- |
 | `VITE_AUTH_SIGN_IN_URL` | `/account-api/signin`, proxied to `https://fullstack-ecommerce2.onrender.com/user/signin` |
-| `VITE_AUTH_SIGN_UP_URL` | Empty; supply the final signup URL |
-| `VITE_AUTH_VERIFY_OTP_URL` | Empty; supply the final email OTP verification URL |
+| `VITE_AUTH_SIGN_UP_URL` | `/account-api/signup`, proxied to `https://fullstack-ecommerce2.onrender.com/user/signup` |
+| `VITE_AUTH_VERIFY_OTP_URL` | `/account-api/verifyOTP`, proxied to `https://fullstack-ecommerce2.onrender.com/user/verifyOTP` |
 | `VITE_AUTH_RESEND_OTP_URL` | Empty; optional resend URL |
 
-These are URL settings, not secret keys. The existing signup/verification routes are not claimed to implement the required flow until the backend confirms their contracts.
+These are public URL settings. Keep private keys in your backend.
 
-1. Signup posts `{ name, email, password, role }`, where role is `buyer` or `seller`. Sign-in posts `{ email, password }`. The server sends the email and returns `{ requiresOtp: true, challengeId? }`.
-2. Verification posts `{ email, otp, challengeId? }` to `VITE_AUTH_VERIFY_OTP_URL`.
-3. Verification must return `{ token, user: { id, name, email, role } }` before a buyer or seller is authenticated. The server verifies the code, determines the role, and issues the session.
+1. Signup posts `{ name, email, password, role }`. The buyer choice maps to backend `user`; the seller choice sends `seller`. The current backend ignores `role` and always stores `user`, so seller signup needs the backend change below. Its `201 { message: "Sign up sucessfully" }` response opens the OTP screen.
+2. Verification posts `{ email, otp }` to `/user/verifyOTP`. Its expected success is HTTP 200 with plain text `User verified successfully`. A successful message moves the UI to sign-in without creating a session. If a future verification response includes a valid token and user, the adapter can accept that session.
+3. Sign-in posts `{ email, password }` to `/user/signin`. Success returns `{ message, token, user: { id, name, role } }`. This session opens the page matching the backend role: `user` becomes buyer, `seller` opens the seller dashboard, and `admin` opens the admin dashboard. Sign-in does not request another OTP.
 
-There are no frontend-generated codes, simulated emails, or fake accounts. Buyer/seller token-only credential responses cannot bypass OTP. Existing backend-issued admin credential responses may establish an admin session directly. Resend is shown only when its endpoint is configured; it posts `{ email, challengeId? }` and must send a real email through the backend. A returned `challengeId` replaces the previous one when supplied.
+OTP success and authentication errors can be JSON or plain text, including the plain messages Express sends with a `text/html` content type. Signup and sign-in success return JSON. Invalid codes and server failures remain visible in the form for retry. Sign-in must return a token and server user; a message-only response cannot authenticate an account. Unverified or inactive sign-in returns HTTP 403 with `{ message: "Account is unverified or disabled" }`.
 
-The backend's `user` role maps to frontend `buyer`. The admin page is [https://nook-pearl-six.vercel.app/admin](https://nook-pearl-six.vercel.app/admin), for backend-provisioned `admin` accounts. The public products URL neither grants administrator access nor requires a secret API key.
+There are no frontend-generated codes, simulated emails, or fake accounts. No resend route was supplied, so resend remains unavailable. Configuring `VITE_AUTH_RESEND_OTP_URL` enables a real backend request with `{ email, challengeId? }`; an optional returned `challengeId` replaces the previous one.
+
+## Admin access
+
+Use a trusted backend/database operation to set `role: "admin"` on an existing account with `verified: true` and `isActive: true`. Sign in through the normal form, then open [https://nook-pearl-six.vercel.app/admin](https://nook-pearl-six.vercel.app/admin). The returned backend role controls navigation. There is no public admin signup endpoint, and the product API URL does not grant admin access.
 
 Sessions use the backend-issued token and cached user in session storage. On reload, an unexpired JWT restores navigation state; this does not verify its signature, check account status, or detect revocation. The backend must authorize protected requests. Sign-out clears the local session.
+
+## Backend fixes required
+
+Reviewed backend source: `Mekah09/fullstack-ecommerce2`, commit `ed5d74e`.
+
+- `controller/auth.controller.js`, `verifyOTP`: replace `User.findOne({ email })` with `Auth.findOne({ email })`. `User` is undefined, so the current handler returns HTTP 500 before checking the code.
+- `signUp`: await `newUser.save()` and `sendEmail(...)` before returning success. Signup and sign-in catch blocks must send an error response so failed requests do not hang.
+- `signUp`: validate the requested role against `user` and `seller` instead of hardcoding `user`. Do not accept `admin` from public signup.
+- `routes/auth.route.js`: remove the first public `GET /allusers` registration. It currently handles requests before the duplicate route with `protect` and `allowRoles("admin")` can run.
+
+The frontend integration does not modify the backend repository. Live signup verification depends on these backend fixes being deployed.
 
 ## Optional integrations and deployment
 
 `VITE_ORDERS_API_URL` and `VITE_NEWSLETTER_API_URL` are empty until final URLs are supplied. Their components make requests inline when configured. Orders must be confirmed by the backend, which determines current prices, availability, and totals. No orders or subscriptions are fabricated locally, and the frontend does not process payments.
 
-Errors should return a non-2xx status and JSON `{ message: "Helpful explanation" }`. Direct browser requests require backend CORS support for the frontend origin and required headers. Vite and Vercel proxy the default sign-in route; other hosts need equivalent rules. An HTML response where JSON is expected usually indicates a route/proxy fallback problem.
+Errors should return a non-2xx status with a helpful message. Authentication accepts the current backend's JSON and plain-text responses. Direct browser requests require backend CORS support for the frontend origin and required headers. Vite and Vercel proxy all three supplied authentication routes; other hosts need equivalent rules. An HTML response usually indicates a route/proxy fallback problem.
 
 Unknown frontend routes show a not-found page. A SPA fallback may serve that screen with HTTP 200; the UI does not claim an HTTP 404 response.
