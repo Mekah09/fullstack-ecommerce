@@ -29,8 +29,8 @@ export default function RevenueChart({ admin, orders = [], loading = false }) {
             index % Math.ceil(series.length / 5) === 0,
         );
   return (
-    <section className="dash-panel dash-chart-panel">
-      <div className="dash-panel-title">
+    <section className="dash-panel min-w-0 overflow-hidden rounded-xl border border-[#e4e8dd] bg-white dash-chart-panel">
+      <div className="dash-panel-title flex flex-wrap items-center justify-between gap-4 border-b border-[#edf0e7] p-5 [&_h2]:text-base [&_h2]:font-semibold [&_p]:mt-1 [&_p]:text-[11px] [&_p]:leading-5 [&_p]:text-[#8a947e]">
         <div>
           <h2>{admin ? "Marketplace performance" : "Revenue overview"}</h2>
           <p>
@@ -39,31 +39,31 @@ export default function RevenueChart({ admin, orders = [], loading = false }) {
           </p>
         </div>
       </div>
-      <div className="dash-chart-total">
+      <div className="dash-chart-total flex flex-wrap items-baseline gap-3 px-5 pt-5 text-2xl font-medium [&_span]:text-[11px] [&_span]:font-normal [&_span]:text-[#92a080]">
         {loading ? "—" : currency(total)}
         <span>{revenueOrders.length} orders</span>
       </div>
       {loading ? (
-        <div className="dash-empty" role="status">
+        <div className="dash-empty flex flex-col items-center px-5 py-10 text-center [&>svg]:mb-3 [&>svg]:size-8 [&>svg]:text-[#97a58a] [&_h3]:text-sm [&_h3]:font-medium [&_p]:mt-2 [&_p]:text-xs [&_p]:leading-6 [&_p]:text-[#8c9780] [&>button]:mt-5" role="status">
           <p>Loading order revenue…</p>
         </div>
       ) : !series.length ? (
-        <div className="dash-empty">
+        <div className="dash-empty flex flex-col items-center px-5 py-10 text-center [&>svg]:mb-3 [&>svg]:size-8 [&>svg]:text-[#97a58a] [&_h3]:text-sm [&_h3]:font-medium [&_p]:mt-2 [&_p]:text-xs [&_p]:leading-6 [&_p]:text-[#8c9780] [&>button]:mt-5">
           <h3>No revenue history yet</h3>
           <p>Orders with dates will appear in your revenue chart.</p>
         </div>
       ) : (
         <div
-          className="dash-chart"
+          className="dash-chart grid grid-cols-[auto_minmax(0,1fr)] gap-3 p-5"
           role="img"
           aria-label={`Daily revenue for ${series.length} days, total ${currency(total)}`}
         >
-          <div className="dash-chart-y">
+          <div className="dash-chart-y flex flex-col justify-between pb-6 text-[9px] text-[#8a957f]">
             <span>{currency(maximum)}</span>
             <span>{currency(maximum / 2)}</span>
             <span>{currency(0)}</span>
           </div>
-          <div className="dash-chart-body">
+          <div className="dash-chart-body min-w-0 [&>svg]:block [&>svg]:h-40 [&>svg]:w-full">
             <svg
               viewBox="0 0 600 180"
               preserveAspectRatio="none"
@@ -94,7 +94,7 @@ export default function RevenueChart({ admin, orders = [], loading = false }) {
                 );
               })}
             </svg>
-            <div className="dash-chart-x">
+            <div className="dash-chart-x mt-3 flex justify-between gap-1 text-[9px] text-[#8a957f]">
               {labels.map(([day]) => (
                 <span key={day}>
                   {new Date(`${day}T00:00:00Z`).toLocaleDateString(undefined, {

@@ -3,7 +3,7 @@ import { Component, createRef } from "react";
 const focusableSelector =
   'a[href], button:not([disabled]), input:not([disabled]), select:not([disabled]), textarea:not([disabled]), [tabindex]:not([tabindex="-1"])';
 const openPanels = [];
-let previousBodyOverflow = "";
+let bodyWasLocked = false;
 
 export default class DialogPanel extends Component {
   panelRef = createRef();
@@ -11,8 +11,8 @@ export default class DialogPanel extends Component {
   componentDidMount() {
     this.previousFocus = document.activeElement;
     if (!openPanels.length) {
-      previousBodyOverflow = document.body.style.overflow;
-      document.body.style.overflow = "hidden";
+      bodyWasLocked = document.body.classList.contains("overflow-hidden");
+      document.body.classList.add("overflow-hidden");
     }
     openPanels.push(this);
     const panel = this.panelRef.current;
@@ -36,7 +36,7 @@ export default class DialogPanel extends Component {
     if (index >= 0) openPanels.splice(index, 1);
     document.removeEventListener("keydown", this.handleKeyDown);
     if (!openPanels.length) {
-      document.body.style.overflow = previousBodyOverflow;
+      if (!bodyWasLocked) document.body.classList.remove("overflow-hidden");
     }
     if (
       wasTopPanel &&
@@ -105,7 +105,7 @@ export default class DialogPanel extends Component {
       <section
         {...sectionProps}
         ref={this.panelRef}
-        className={className}
+        className={`${className || ""} outline-none`}
         role={role}
         aria-modal="true"
         aria-labelledby={titleId}

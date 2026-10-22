@@ -11,13 +11,12 @@ import ProductForm from "./ProductForm.jsx";
 import SellersPanel from "./SellersPanel.jsx";
 import ShopSettings from "./ShopSettings.jsx";
 import { getNavigation } from "./dashboardNavigation.jsx";
-import "./dashboard.css";
 
 export default class Dashboard extends Component {
   constructor(props) {
     super(props);
     this.state = {
-      tab: "overview",
+      tab: props.initialTab || "overview",
       search: "",
       modal: null,
       deleteProduct: null,
@@ -109,7 +108,10 @@ export default class Dashboard extends Component {
     );
     const navigation = getNavigation(admin);
     const setTab = (nextTab) => this.setState({ tab: nextTab });
-    const openProductForm = () => this.setState({ modal: {} });
+    const openProductForm = () => {
+      if (this.props.onAddProductPage) this.props.onAddProductPage();
+      else this.setState({ modal: {} });
+    };
     const inventoryProps = {
       managedProducts,
       filteredProducts,
@@ -135,7 +137,7 @@ export default class Dashboard extends Component {
     );
 
     return (
-      <div className="dash-layout">
+      <div className="dash-layout mx-auto grid w-full max-w-[1600px] grid-cols-1 items-start gap-5 px-4 py-8 text-[#263e31] sm:px-6 lg:grid-cols-[245px_minmax(0,1fr)] lg:gap-8 lg:px-8">
         <DashboardSidebar
           admin={admin}
           shopName={shopName}
@@ -147,7 +149,7 @@ export default class Dashboard extends Component {
           user={user}
           onBackToShop={onBackToShop}
         />
-        <div className="dash-main">
+        <div className="dash-main min-w-0 space-y-6">
           <DashboardHeader
             admin={admin}
             tab={tab}
@@ -213,7 +215,7 @@ export default class Dashboard extends Component {
               }
             />
           )}
-          <footer className="dash-footer">
+          <footer className="dash-footer flex flex-wrap justify-between gap-3 border-t border-[#e5e8df] pt-5 text-[11px] text-[#7c8574]">
             <span>A little more considered. A little more Nook.</span>
             <span>Made for everyday living. ✳</span>
           </footer>

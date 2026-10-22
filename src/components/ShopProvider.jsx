@@ -1,197 +1,145 @@
-import { Component } from "react";
+import { useCallback, useContext, useEffect, useRef, useState } from "react";
 import { RouteContext } from "../context/RouteContext.jsx";
 import { ShopContext } from "../context/ShopContext.jsx";
 import { readStoredArray, writeStored } from "../utils/storage.jsx";
-import {
-  cartKey,
-  cartRecords,
-  changeCartQuantity,
-  hasStockLimit,
-  increaseCart,
-} from "../utils/cart.jsx";
-import * as api from "../services/api.jsx";
-import * as account from "../services/accountActions.jsx";
-import * as catalog from "../services/catalogActions.jsx";
-import * as orders from "../services/orderActions.jsx";
+import { cartKey, cartRecords, changeCartQuantity, increaseCart, restoreCart } from "../utils/cart.jsx";
+import { clearSession, readSession, saveSession } from "../services/auth.jsx";
 
-export default class ShopProvider extends Component {
-  static contextType = RouteContext;
-  alive = false;
-  accountVersion = 0;
-  catalogVersion = 0;
-  catalogAdditionVersion = 0;
-  catalogAdditions = new Map();
-  savedCartRecords = readStoredArray("nook_cart");
-  savedFavoriteIds = readStoredArray("nook_favorites");
-  state = {
-    products: [],
-    createdProductIds: [],
-    loading: true,
-    loadError: "",
-    user: null,
-    authLoading: true,
-    cart: [],
-    favorites: [],
-    orders: [],
-    ordersLoading: false,
-    ordersError: "",
-    sellers: [],
-    sellersLoading: false,
-    sellersError: "",
-    overlay: null,
-    info: null,
-    toast: "",
-    checkoutBusy: false,
-    lastOrder: null,
-  };
+export default function ShopProvider({ children }) {
+  const { location, navigate } = useContext(RouteContext);
+  const [session, setSession] = useState(() => readSession());
+  const [products, setProducts] = useState([]);
+  const [catalogVersion, setCatalogVersion] = useState(0);
+  const [createdProductIds, setCreatedProductIds] = useState([]);
+  const [cart, setCart] = useState([]);
+  const [favorites, setFavorites] = useState(() => readStoredArray("nook_favorites"));
+  const [catalogReady, setCatalogReady] = useState(false);
+  const initialCart = useRef(readStoredArray("nook_cart"));
+  const hydrated = useRef(false);
+  const [overlay, setOverlay] = useState(null);
+  const [info, setInfo] = useState(null);
+  const [toast, setToast] = useState("");
+  const [orders, setOrders] = useState([]);
+  const [ordersLoading, setOrdersLoading] = useState(false);
+  const [ordersError, setOrdersError] = useState("");
+  const [sellers, setSellers] = useState([]);
+  const [sellersLoading, setSellersLoading] = useState(false);
+  const [sellersError, setSellersError] = useState("");
+  const [checkoutBusy, setCheckoutBusy] = useState(false);
+  const [lastOrder, setLastOrder] = useState(null);
+  const user = session?.user || null;
+  const token = session?.token || "";
 
-  componentDidMount() {
-    this.alive = true;
-    this.refreshProducts().catch(() => {});
-    account.restoreSession(this);
-  }
-  componentWillUnmount() {
-    this.alive = false;
-    ++this.accountVersion;
-    ++this.catalogVersion;
-    clearTimeout(this.toastTimer);
-  }
+  useEffect(() => {
+    if (!catalogReady) return;
+    writeStored("nook_cart", cartRecords(cart));
+  }, [cart, catalogReady]);
+  useEffect(() => { writeStored("nook_favorites", favorites); }, [favorites]);
+  useEffect(() => {
+    if (!toast) return;
+    const timer = setTimeout(() => setToast(""), 4000);
+    return () => clearTimeout(timer);
+  }, [toast]);
 
-  navigate = (to, options) => this.context.navigate(to, options);
-  notify = (message) => {
-    if (!this.alive) return;
-    clearTimeout(this.toastTimer);
-    this.setState({ toast: message });
-    this.toastTimer = setTimeout(() => {
-      if (this.alive) this.setState({ toast: "" });
-    }, 3500);
-  };
-  persistShopping = () => {
-    this.savedCartRecords = cartRecords(this.state.cart);
-    this.savedFavoriteIds = this.state.favorites;
-    writeStored("nook_cart", this.savedCartRecords);
-    writeStored("nook_favorites", this.savedFavoriteIds);
-  };
-  toggleFavorite = (id) =>
-    this.setState(
-      (current) => ({
-        favorites: current.favorites.includes(id)
-          ? current.favorites.filter((item) => item !== id)
-          : [...current.favorites, id],
-      }),
-      this.persistShopping,
-    );
-  openAuth = (role = "buyer", mode = "signup") =>
-    this.setState({ overlay: { type: "auth", role, mode } });
-  closeOverlay = () => {
-    if (!this.state.checkoutBusy) this.setState({ overlay: null });
-  };
-  openCart = () => this.setState({ overlay: { type: "cart" } });
-  viewProduct = (product) =>
-    this.setState({ overlay: { type: "product", product } });
-  openCheckout = () => {
-    if (this.state.cart.length)
-      this.setState({ overlay: { type: "checkout" } });
-  };
-  showInfo = (info) => this.setState({ info });
-  closeInfo = () => this.setState({ info: null });
-  dismissToast = () => {
-    clearTimeout(this.toastTimer);
-    this.setState({ toast: "" });
-  };
+  // Pages fetch their own products. This only shares their real API results
+  // with the bag and saved finds; no network request happens in this provider.
+  const setCatalog = useCallback((records) => {
+    const firstLoad = !hydrated.current;
+    hydrated.current = true;
+    setProducts(records);
+    setCart((current) => restoreCart(records, firstLoad ? initialCart.current : cartRecords(current)));
+    setCatalogReady(true);
+  }, []);
 
-  addToCart = (product, requested = 1) => {
-    const requestedQuantity = Math.floor(Number(requested));
-    if (!Number.isSafeInteger(requestedQuantity) || requestedQuantity < 1) {
-      this.notify("Choose a valid quantity.");
+  const recordProduct = useCallback((product) => {
+    setProducts((current) => [product, ...current.filter((item) => item.id !== product.id)]);
+    setCreatedProductIds((current) => [...new Set([...current, product.id])]);
+    setCatalogVersion((version) => version + 1);
+  }, []);
+  const notify = useCallback((message) => setToast(message), []);
+  const openAuth = (role = "buyer", mode = "signup") => setOverlay({ type: "auth", role, mode });
+  const closeOverlay = () => { if (!checkoutBusy) setOverlay(null); };
+  const authenticate = async (verifiedSession) => {
+    const account = saveSession(verifiedSession) || verifiedSession;
+    setSession(account);
+    setCreatedProductIds([]);
+    setOrders([]);
+    setSellers([]);
+    setOverlay(null);
+    notify(`Welcome ${account.user.name?.split(" ")[0] || "to Nook"}!`);
+    navigate(account.user.role === "admin" ? "/admin" : account.user.role === "seller" ? "/seller" : "/account");
+  };
+  const logout = () => {
+    clearSession();
+    setSession(null);
+    setCreatedProductIds([]);
+    setOrders([]);
+    setSellers([]);
+    setOverlay(null);
+    navigate("/");
+    notify("You’re signed out.");
+  };
+  const addToCart = (product, requested = 1) => {
+    const quantity = Math.floor(Number(requested));
+    const live = products.find((item) => item.id === product.id);
+    if (!live || !Number.isSafeInteger(quantity) || quantity < 1) return false;
+    const used = cart.filter((item) => item.id === live.id).reduce((sum, item) => sum + item.quantity, 0);
+    if (live.stock != null && used + quantity > live.stock) {
+      notify("The requested quantity exceeds the available stock.");
       return false;
     }
-    const live = this.state.products.find((item) => item.id === product.id);
-    const used = this.state.cart
-      .filter((item) => item.id === product.id)
-      .reduce((sum, item) => sum + item.quantity, 0);
-    if (!live || (hasStockLimit(live.stock) && live.stock <= used)) {
-      this.notify("This quantity is currently unavailable.");
-      return false;
-    }
-    const quantity = Math.min(
-      requestedQuantity,
-      hasStockLimit(live.stock)
-        ? live.stock - used
-        : Number.MAX_SAFE_INTEGER - used,
-    );
-    if (quantity < 1) {
-      this.notify("Choose a smaller quantity.");
-      return false;
-    }
-    const item = {
-      ...live,
-      selectedColor: product.selectedColor,
-      selectedFinish: product.selectedFinish,
-    };
-    this.setState(
-      (current) => ({ cart: increaseCart(current.cart, item, quantity) }),
-      this.persistShopping,
-    );
-    this.notify(`${live.name} added to your bag`);
+    setCart((current) => increaseCart(current, { ...live, selectedColor: product.selectedColor, selectedFinish: product.selectedFinish }, quantity));
+    notify(`${live.name} added to your bag`);
     return true;
   };
-  updateQuantity = (key, quantity) =>
-    this.setState(
-      (current) => ({ cart: changeCartQuantity(current.cart, key, quantity) }),
-      this.persistShopping,
-    );
-  removeFromCart = (key) =>
-    this.setState(
-      (current) => ({
-        cart: current.cart.filter((item) => cartKey(item) !== key),
-      }),
-      this.persistShopping,
-    );
-  authenticate = (data) => account.authenticate(this, data);
-  logout = () => account.logout(this);
-  refreshProducts = () => catalog.refreshProducts(this);
-  addProduct = (fields) => catalog.addProduct(this, fields);
-  updateProduct = (id, fields) => catalog.updateProduct(this, id, fields);
-  deleteProduct = (id) => catalog.deleteProduct(this, id);
-  placeOrder = (data) => orders.placeOrder(this, data);
-  approveSeller = (id) => orders.approveSeller(this, id);
-  subscribeNewsletter = (email) => api.subscribeNewsletter(email);
+  const placeOrder = async (data) => {
+    const endpoint = import.meta.env.VITE_ORDERS_API_URL;
+    if (!endpoint) throw new Error("Checkout will be available when the order API is connected.");
+    if (!user) throw new Error("Please sign in before placing your order.");
+    setCheckoutBusy(true);
+    try {
+      const response = await fetch(endpoint, {
+        method: "POST",
+        headers: { "Content-Type": "application/json", ...(token ? { Authorization: `Bearer ${token}` } : {}) },
+        body: JSON.stringify({
+          items: data.items.map((item) => ({ productId: item.id, quantity: item.quantity, ...(item.selectedColor ? { selectedColor: item.selectedColor } : {}) })),
+          shippingAddress: data.shippingAddress,
+        }),
+      });
+      const payload = await response.json();
+      if (!response.ok) throw new Error(payload.message || "Unable to place your order.");
+      const order = payload.order || payload;
+      if (!(order.id || order._id) || !Array.isArray(order.items) || !Number.isFinite(Number(order.total))) throw new Error("The order API returned an incomplete order.");
+      const saved = { ...order, id: String(order.id || order._id), total: Number(order.total) };
+      setOrders((current) => [saved, ...current]);
+      setLastOrder(saved);
+      setCart([]);
+      setOverlay({ type: "success" });
+      setCatalogVersion((version) => version + 1);
+      return saved;
+    } finally { setCheckoutBusy(false); }
+  };
 
-  render() {
-    const value = {
-      ...this.state,
-      location: this.context.location,
-      navigate: this.navigate,
-      cartCount: this.state.cart.reduce((sum, item) => sum + item.quantity, 0),
-      apiConfigured: api.API_CONFIGURED,
-      notify: this.notify,
-      dismissToast: this.dismissToast,
-      toggleFavorite: this.toggleFavorite,
-      openAuth: this.openAuth,
-      closeOverlay: this.closeOverlay,
-      openCart: this.openCart,
-      viewProduct: this.viewProduct,
-      openCheckout: this.openCheckout,
-      showInfo: this.showInfo,
-      closeInfo: this.closeInfo,
-      addToCart: this.addToCart,
-      updateQuantity: this.updateQuantity,
-      removeFromCart: this.removeFromCart,
-      authenticate: this.authenticate,
-      logout: this.logout,
-      refreshProducts: this.refreshProducts,
-      addProduct: this.addProduct,
-      updateProduct: this.updateProduct,
-      deleteProduct: this.deleteProduct,
-      placeOrder: this.placeOrder,
-      approveSeller: this.approveSeller,
-      subscribeNewsletter: this.subscribeNewsletter,
-    };
-    return (
-      <ShopContext.Provider value={value}>
-        {this.props.children}
-      </ShopContext.Provider>
-    );
-  }
+  return (
+    <ShopContext.Provider value={{
+      user, token, authLoading: false, products, setCatalog, recordProduct, catalogVersion,
+      createdProductIds, cart, favorites, overlay, info, toast, checkoutBusy, lastOrder,
+      orders, setOrders, ordersLoading, setOrdersLoading, ordersError, setOrdersError,
+      sellers, setSellers, sellersLoading, setSellersLoading, sellersError, setSellersError,
+      location, navigate, notify, authenticate, logout, openAuth, closeOverlay,
+      cartCount: cart.reduce((sum, item) => sum + item.quantity, 0),
+      toggleFavorite: (id) => setFavorites((current) => current.includes(id) ? current.filter((value) => value !== id) : [...current, id]),
+      updateQuantity: (id, quantity) => setCart((current) => changeCartQuantity(current, id, quantity)),
+      removeFromCart: (id) => setCart((current) => current.filter((item) => cartKey(item) !== id)),
+      addToCart, openCart: () => setOverlay({ type: "cart" }),
+      viewProduct: (product) => setOverlay({ type: "product", product }),
+      openCheckout: () => user ? setOverlay({ type: "checkout" }) : openAuth("buyer", "signin"),
+      showInfo: setInfo, closeInfo: () => setInfo(null), dismissToast: () => setToast(""),
+      refreshProducts: () => setCatalogVersion((version) => version + 1),
+      addProduct: recordProduct, updateProduct: (_id, product) => recordProduct(product),
+      deleteProduct: async () => { throw new Error("Product deletion needs your backend endpoint."); },
+      approveSeller: async () => { throw new Error("Seller approval needs your backend endpoint."); },
+      placeOrder,
+    }}>{children}</ShopContext.Provider>
+  );
 }
