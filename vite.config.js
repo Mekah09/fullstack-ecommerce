@@ -43,6 +43,11 @@ export default defineConfig(({ mode }) => {
           changeOrigin: true,
           rewrite: () => '/user/verifyOTP',
         },
+        '/account-api/resendOTP': {
+          target: 'https://fullstack-ecommerce2.onrender.com',
+          changeOrigin: true,
+          rewrite: () => '/user/resendOTP',
+        },
       },
     },
   }

@@ -61,17 +61,25 @@ function sessionFrom(payload) {
 
 async function post(url, body, missingMessage, allowText = false) {
   if (!url) throw new Error(missingMessage);
+  const controller = new AbortController();
+  const timeout = setTimeout(() => controller.abort(), 90000);
   let response;
+  let text;
   try {
     response = await fetch(url, {
       method: "POST",
       headers: { Accept: "application/json", "Content-Type": "application/json" },
       body: JSON.stringify(body),
+      signal: controller.signal,
     });
+    text = await response.text();
   } catch {
+    if (controller.signal.aborted)
+      throw new Error("The authentication service took too long to respond. Please try again.");
     throw new Error("Unable to reach the authentication service. Please try again.");
+  } finally {
+    clearTimeout(timeout);
   }
-  const text = await response.text();
   // Express res.send("message") uses text/html even for plain messages.
   // Reject actual markup, while accepting those existing OTP responses.
   if (/^\s*</.test(text)) {
@@ -84,9 +92,14 @@ async function post(url, body, missingMessage, allowText = false) {
     if (response.ok && !allowText) throw new Error("The authentication API returned an invalid JSON response.");
     payload = text;
   }
-  if (!response.ok) {
-    const message = typeof payload === "string" ? payload : payload?.message ?? payload?.error?.message;
-    throw new Error(typeof message === "string" ? message : `Authentication failed (${response.status}). Please try again.`);
+  const result = payload?.data ?? payload;
+  if (!response.ok || payload?.success === false || result?.success === false || payload?.error || result?.error) {
+    const error = result?.error ?? payload?.error;
+    const message = typeof result === "string" ? result : result?.message ?? payload?.message ?? (typeof error === "string" ? error : error?.message);
+    throw new Error(typeof message === "string" && message.trim()
+      ? message
+      : response.ok ? "The authentication service could not complete your request. Please try again."
+        : `Authentication failed (${response.status}). Please try again.`);
   }
   return payload;
 }
@@ -121,7 +134,7 @@ export async function beginAuth({ mode, role, name, email, password }) {
   };
   // Signup sends the email code; the current API returns only a message.
   // Sign-in checks verification on the backend and returns the actual role.
-  if (signup && (requiresOtp || typeof body?.message === "string")) return challenge;
+  if (signup && (requiresOtp || (typeof body?.message === "string" && body.message.trim()))) return challenge;
   if (!signup && requiresOtp) return challenge;
   if (!signup) return { session: sessionFrom(payload) };
   throw new Error("The registration API did not confirm that your account was created.");
@@ -156,9 +169,13 @@ export async function resendOtp({ email, challengeId }) {
     "Resending codes is awaiting its API route. Set VITE_AUTH_RESEND_OTP_URL to connect it.",
   );
   const body = payload?.data ?? payload;
+  const hasMessage = typeof body?.message === "string" && Boolean(body.message.trim());
+  const hasChallenge = typeof body?.challengeId === "string" && Boolean(body.challengeId.trim());
+  if (!body || (!hasMessage && !hasChallenge && body?.success !== true))
+    throw new Error("The email service did not confirm your resend request. Please try again.");
   return {
-    challengeId: typeof body?.challengeId === "string" ? body.challengeId : challengeId,
-    message: typeof body?.message === "string" ? body.message : "Request accepted. Check your email for a new code.",
+    challengeId: hasChallenge ? body.challengeId : challengeId,
+    message: hasMessage ? body.message : "Request accepted. Check your email for a new code.",
   };
 }
 

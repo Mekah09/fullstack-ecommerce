@@ -48,7 +48,9 @@ These are public URL settings. Keep private keys in your backend.
 
 OTP success and authentication errors can be JSON or plain text, including the plain messages Express sends with a `text/html` content type. Signup and sign-in success return JSON. Invalid codes and server failures remain visible in the form for retry. Sign-in must return a token and server user; a message-only response cannot authenticate an account. Unverified or inactive sign-in returns HTTP 403 with `{ message: "Account is unverified or disabled" }`.
 
-There are no frontend-generated codes, simulated emails, or fake accounts. No resend route was supplied, so resend remains unavailable. Configuring `VITE_AUTH_RESEND_OTP_URL` enables a real backend request with `{ email, challengeId? }`; an optional returned `challengeId` replaces the previous one.
+There are no frontend-generated codes, simulated emails, or fake accounts. The original backend has no resend route, so resend remains unavailable by default. The included [backend repair patch](./docs/backend-otp.patch) adds `POST /user/resendOTP` with `{ email }`. Follow [OTP_SETUP.md](./OTP_SETUP.md) to apply, configure, and deploy it first; then set `VITE_AUTH_RESEND_OTP_URL=/account-api/resendOTP` and redeploy the frontend. Both Vite and Vercel map that public path to the backend. A custom resend endpoint may return a `challengeId` to replace the previous one.
+
+Authentication requests stop waiting after 90 seconds, including response-body reads. Explicit failure bodies such as `{ success: false, message: "Email failed" }` remain errors even with HTTP 200. Signup cannot advance on an empty confirmation message. Resend also requires a confirmation response. The original backend's message-only signup response cannot prove that email sending succeeded; only awaiting the provider request on the backend can fix that.
 
 ## Admin access
 
@@ -65,7 +67,9 @@ Reviewed backend source: `Mekah09/fullstack-ecommerce2`, commit `ed5d74e`.
 - `signUp`: validate the requested role against `user` and `seller` instead of hardcoding `user`. Do not accept `admin` from public signup.
 - `routes/auth.route.js`: remove the first public `GET /allusers` registration. It currently handles requests before the duplicate route with `protect` and `allowRoles("admin")` can run.
 
-The frontend integration does not modify the backend repository. Live signup verification depends on these backend fixes being deployed.
+The ready-to-apply repair is included at [docs/backend-otp.patch](./docs/backend-otp.patch), with step-by-step setup in [OTP_SETUP.md](./OTP_SETUP.md). It also removes the schema's unique OTP constraint, adds expiry and retry limits, adds resend, and supports HTTPS email through Resend or bounded SMTP delivery. Apply it to the backend repository, remove the existing unique `otp_1` database index after inspecting it, configure email securely on Render, and deploy. The patch is not automatically applied or deployed by the frontend.
+
+With the repair applied, signup/resend return success only after provider acceptance, and mail failures return HTTP 502. Acceptance is not proof of inbox delivery. Codes expire after ten minutes; resend has a 60-second cooldown. Existing unverified accounts use resend without resetting their passwords. Backend-only email variables are `MAIL_TRANSPORT`, `RESEND_API_KEY`, `EMAIL_FROM` for HTTPS, or `EMAIL_USER`, `EMAIL_PASS`, `SMTP_HOST`, and `SMTP_PORT` for SMTP. Keep all private credentials out of `VITE_*` variables.
 
 ## Optional integrations and deployment
 

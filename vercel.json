@@ -17,6 +17,10 @@
       "destination": "https://fullstack-ecommerce2.onrender.com/user/verifyOTP"
     },
     {
+      "source": "/account-api/resendOTP",
+      "destination": "https://fullstack-ecommerce2.onrender.com/user/resendOTP"
+    },
+    {
       "source": "/catalog-api/products",
       "destination": "https://fullstack-ecommerce2.onrender.com/products"
     },
